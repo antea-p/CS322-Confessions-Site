@@ -3,6 +3,32 @@
 }
 
 <div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+    <h1 class="display-4">Confessions</h1>
+
+    @if (User?.Identity?.IsAuthenticated != true)
+    {
+        <p><a href="@Url.Action("Create", "Confession")" class="btn btn-primary">Submit Confession</a></p>
+    }
+</div>
+
+<div class="container">
+    @foreach (var confession in Model)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">@confession.Title</h5>
+                <p class="card-text">@confession.Content</p>
+                <div class="text-muted">
+                    Posted: @confession.DateCreated.ToString("MMM dd, yyyy HH:mm")
+                    | Likes: @confession.Likes
+                    | Comments: @confession.CommentCount
+                </div>
+                @if (User.Identity.IsAuthenticated)
+                {
+                    <a href="@Url.Action("Edit", "Confession", new { id = confession.Id })" class="btn btn-sm btn-warning">Edit</a>
+                    <a href="@Url.Action("Delete", "Confession", new { id = confession.Id })" class="btn btn-sm btn-danger">Delete</a>
+                }
+            </div>
+        </div>
+    }
 </div>
