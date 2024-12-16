@@ -1,21 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace CS322_PZ_AnteaPrimorac5157.Models
+﻿namespace CS322_PZ_AnteaPrimorac5157.ViewModels
 {
-    public class Confession
+    public class ConfessionListViewModel
     {
         public int Id { get; set; }
-
-        [Required]
         public string Title { get; set; } = string.Empty;
-
-        [Required]
         public string Content { get; set; } = string.Empty;
-
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
-
         public int Likes { get; set; } = 0;
-
-        public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public int CommentCount { get; set; } = 0;
     }
 }
