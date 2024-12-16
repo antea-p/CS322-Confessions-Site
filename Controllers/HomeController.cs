@@ -1,6 +1,6 @@
 using CS322_PZ_AnteaPrimorac5157.Data;
 using CS322_PZ_AnteaPrimorac5157.Models;
-using CS322_PZ_AnteaPrimorac5157.Models.ViewModels;
+using CS322_PZ_AnteaPrimorac5157.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -20,6 +20,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
 		public IActionResult Index()
 		{
 			var confessions = _context.Confessions
+				.Where(c => c != null)
 				.Select(c => new ConfessionListViewModel
 				{
 					Id = c.Id,
@@ -31,6 +32,11 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
 				})
 				.OrderByDescending(c => c.DateCreated)
 				.ToList();
+
+			if (!confessions.Any())
+			{
+				ViewData["Message"] = "No confessions yet. Be the first to confess!";
+			}
 
 			return View(confessions);
 		}
