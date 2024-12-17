@@ -1,22 +1,170 @@
+﻿:root {
+    /* Boje */
+    --dark-bg: #111;
+    --darker-bg: #000;
+    --text-color: #fff;
+    --accent-blue: #84f;
+    --accent-blue-hover: #96f;
+    --card-bg: rgba(20, 20, 20, 0.9);
+    --muted-text: #666;
+    /* Razmaci */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    /* Veličina fonta */
+    --text-sm: 0.8rem;
+    --text-base: 0.9rem;
+    --text-lg: 1rem;
+    /* Tranzicije */
+    --transition-base: all 0.2s ease;
+}
+
+/* ==========================================================================
+   Osnovni elementi
+   ========================================================================== */
 html {
-  font-size: 14px;
-}
-
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+    background-color: var(--dark-bg);
+    color: var(--text-color);
+    margin-bottom: var(--space-lg);
+}
+
+/* ==========================================================================
+   Navigacija
+   ========================================================================== */
+.navbar {
+    background-color: var(--darker-bg) !important;
+    border-bottom: 1px solid var(--accent-blue);
+}
+
+.navbar-brand {
+    color: var(--text-color) !important;
+    transition: var(--transition-base);
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-color) !important;
+    position: relative;
+    transition: var(--transition-base);
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    color: var(--accent-blue) !important;
+}
+
+.navbar-nav .nav-link.active {
+    color: var(--accent-blue) !important;
+}
+
+.navbar-text {
+    color: var(--muted-text) !important;
+}
+
+.navbar-text a {
+    color: var(--text-color) !important;
+    text-decoration: none;
+    transition: var(--transition-base);
+}
+
+.navbar-text a:hover {
+    color: var(--accent-blue) !important;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Kartice
+   ========================================================================== */
+.card {
+    background-color: var(--card-bg);
+    border: none;
+    margin-bottom: var(--space-md);
+    border-radius: 0;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--card-bg);
+    border-bottom: none;
+    padding: var(--space-md) var(--space-md) 0;
+}
+
+.card-body {
+    padding: var(--space-md);
+}
+
+.confession-header-left {
+    color: var(--muted-text);
+    font-size: var(--text-sm);
+}
+
+.confession-header-right {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.confession-stats {
+    color: var(--muted-text);
+    font-size: var(--text-base);
+}
+
+.confession-id {
+    color: var(--muted-text);
+    font-size: var(--text-sm);
+    margin-bottom: var(--space-sm);
+}
+
+/* ==========================================================================
+   Dugmad
+   ========================================================================== */
+.btn {
+    transition: var(--transition-base);
+}
+
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 var(--space-xs) var(--text-color), 0 0 0 calc(var(--space-xs) * 2) var(--accent-blue);
+}
+
+.btn-primary {
+    background-color: var(--accent-blue);
+    border: none;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+    background-color: var(--accent-blue-hover);
+}
+
+.btn-warning,
+.btn-danger {
+    opacity: 0.8;
+    transition: var(--transition-base);
+}
+
+.btn-warning:hover,
+.btn-warning:focus,
+.btn-danger:hover,
+.btn-danger:focus {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   Media Query
+   ========================================================================== */
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
 }
