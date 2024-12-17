@@ -35,7 +35,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
 
 			if (!confessions.Any())
 			{
-				ViewData["Message"] = "No confessions yet. Be the first to confess!";
+				ViewData["Message"] = "Confessions list is empty!";
 			}
 
 			return View(confessions);
