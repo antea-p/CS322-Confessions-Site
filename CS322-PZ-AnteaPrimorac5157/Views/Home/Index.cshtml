@@ -45,7 +45,7 @@
 		</div>
 		<div class="card-body">
 			<h5 class="card-title">@confession.Title</h5>
-			<p class="card-text">@Html.Raw(HttpUtility.HtmlEncode(confession.Content))</p>
+				<p class="card-text">@Html.Raw(confession.Content)</p>
 
 			<div class="confession-stats">
 				<span>@confession.DateCreated.ToString("dd MMM yy")</span>
