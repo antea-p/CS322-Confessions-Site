@@ -122,6 +122,41 @@ body {
     margin-bottom: var(--space-sm);
 }
 
+/* Add this to your site.css */
+.input-group-text {
+    background-color: var(--darker-bg);
+    color: var(--muted-text);
+    border: 1px solid var(--accent-blue);
+    font-size: var(--text-sm);
+}
+
+/* ==========================================================================
+   Forma i brojač karaktera
+   ========================================================================== */
+.form-group small.text-muted {
+    display: block;
+    text-align: right;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: var(--muted-text) !important;
+}
+
+.form-group small.text-muted .text-danger {
+    color: #dc3545 !important;
+}
+
+.form-control:focus {
+    background-color: var(--dark-bg);
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 0 0.2rem rgba(136, 68, 255, 0.25);
+    color: var(--text-color);
+}
+
+textarea.form-control {
+    resize: vertical;
+    min-height: 100px;
+}
+
 /* ==========================================================================
    Dugmad
    ========================================================================== */

@@ -25,7 +25,6 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 })
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// Configure Identity to disable specific features
 builder.Services.ConfigureApplicationCookie(options =>
 {
 	options.ExpireTimeSpan = TimeSpan.FromHours(1);
