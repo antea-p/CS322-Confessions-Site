@@ -1,39 +1,38 @@
 ﻿using CS322_PZ_AnteaPrimorac5157.Controllers;
-using CS322_PZ_AnteaPrimorac5157.Data;
 using CS322_PZ_AnteaPrimorac5157.Models;
+using CS322_PZ_AnteaPrimorac5157.Repositories;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using System.Security.Claims;
-using Xunit;
 
-namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
+namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
 {
-    public class HomeControllerTests : IDisposable
+    public class HomeControllerTests
     {
-        private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<HomeController>> _loggerMock;
+        private readonly Mock<IConfessionRepository> _repositoryMock;
         private readonly HomeController _controller;
 
         public HomeControllerTests()
         {
-            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
-
-            _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<HomeController>>();
-            _controller = new HomeController(_loggerMock.Object, _context);
+            _repositoryMock = new Mock<IConfessionRepository>();
+
+            _controller = new HomeController(
+                _loggerMock.Object,
+                _repositoryMock.Object);
         }
 
         [Fact]
-        public void Index_WithNoConfessions_ReturnsViewWithEmptyList()
+        public async Task Index_WithNoConfessions_ReturnsViewWithEmptyList()
         {
+            // Arrange
+            _repositoryMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(new List<Confession>());
+
             // Act
-            var result = _controller.Index() as ViewResult;
+            var result = (await _controller.Index()) as ViewResult;
 
             // Assert
             Assert.NotNull(result);
@@ -43,7 +42,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
-        public void Index_WithSingleConfession_ReturnsViewWithOneConfession()
+        public async Task Index_WithSingleConfession_ReturnsViewWithOneConfession()
         {
             // Arrange
             var confession = new Confession
@@ -55,14 +54,16 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                 Likes = 0,
                 Comments = new List<Comment>()
             };
-            _context.Confessions.Add(confession);
-            _context.SaveChanges();
+
+            _repositoryMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(new List<Confession> { confession });
 
             // Act
-            var result = _controller.Index() as ViewResult;
+            var result = (await _controller.Index()) as ViewResult;
 
             // Assert
             Assert.NotNull(result);
+
             // isAssignableFrom provjerava možemo li ovaj objekt tretirati kao tip T, tj. IEnumerable<ConfessionListViewModel>
             var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
             var confessionsList = Assert.Single(model); // provjeri da lista ima točno 1 element
@@ -72,35 +73,35 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
-        public void Index_WithMultipleConfessions_ReturnsAllConfessionsOrderedByDate()
+        public async Task Index_WithMultipleConfessions_ReturnsAllConfessionsOrderedByDate()
         {
             // Arrange
             var oldDate = DateTime.UtcNow.AddDays(-1);
             var newDate = DateTime.UtcNow;
 
             var confessions = new List<Confession>
+        {
+            new Confession
             {
-                new Confession
-                {
-                    Title = "Old Confession",
-                    Content = "Old Content",
-                    DateCreated = oldDate,
-                    Comments = new List<Comment>()
-                },
-                new Confession
-                {
-                    Title = "New Confession",
-                    Content = "New Content",
-                    DateCreated = newDate,
-                    Comments = new List<Comment>()
-                }
-            };
+                Title = "Old Confession",
+                Content = "Old Content",
+                DateCreated = oldDate,
+                Comments = new List<Comment>()
+            },
+            new Confession
+            {
+                Title = "New Confession",
+                Content = "New Content",
+                DateCreated = newDate,
+                Comments = new List<Comment>()
+            }
+        };
 
-            _context.Confessions.AddRange(confessions);
-            _context.SaveChanges();
+            _repositoryMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(confessions);
 
             // Act
-            var result = _controller.Index() as ViewResult;
+            var result = (await _controller.Index()) as ViewResult;
 
             // Assert
             Assert.NotNull(result);
@@ -112,7 +113,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
-        public void Index_WithConfessionWithComments_ReturnsCorrectCommentCount()
+        public async Task Index_WithConfessionWithComments_ReturnsCorrectCommentCount()
         {
             // Arrange
             var confession = new Confession
@@ -121,17 +122,17 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                 Content = "Test Content",
                 DateCreated = DateTime.UtcNow,
                 Comments = new List<Comment>
-                {
-                    new Comment { Content = "Comment 1", AuthorNickname = "User1" },
-                    new Comment { Content = "Comment 2", AuthorNickname = "User2" }
-                }
+        {
+            new Comment { Content = "Comment 1", AuthorNickname = "User1" },
+            new Comment { Content = "Comment 2", AuthorNickname = "User2" }
+        }
             };
 
-            _context.Confessions.Add(confession);
-            _context.SaveChanges();
+            _repositoryMock.Setup(repo => repo.GetAllAsync())
+                           .ReturnsAsync(new List<Confession> { confession });
 
             // Act
-            var result = _controller.Index() as ViewResult;
+            var result = (await _controller.Index()) as ViewResult;
 
             // Assert
             Assert.NotNull(result);
@@ -140,10 +141,30 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             Assert.Equal(2, confessionViewModel.CommentCount);
         }
 
-        public void Dispose()
+        [Fact]
+        public async Task Index_WhenRepositoryThrowsException_ReturnsViewWithError()
         {
-            _context.Database.EnsureDeleted();
-            _context.Dispose();
+            // Arrange
+            _repositoryMock.Setup(repo => repo.GetAllAsync())
+                           .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("An error occurred while loading confessions.", result.ViewData["Message"]);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            Assert.Empty(model);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    It.Is<LogLevel>(l => l == LogLevel.Error),
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.Is<Exception>(e => e.Message == "Database error"),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
     }
 }
