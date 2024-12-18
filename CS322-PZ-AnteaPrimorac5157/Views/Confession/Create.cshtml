@@ -15,7 +15,7 @@
                     <label asp-for="Title" class="control-label">Title</label>
                     <input asp-for="Title" class="form-control" maxlength="50" id="titleInput" />
                     <small class="text-muted">
-                        Characters remaining: <span id="titleCounter">50</span>
+                        <span id="titleCounter">50</span>/50 remaining
                     </small>
                     <span asp-validation-for="Title" class="text-danger"></span>
                 </div>
@@ -34,7 +34,7 @@
                     </div>
                     <textarea asp-for="Content" class="form-control" rows="5" id="contentInput" maxlength="2000"></textarea>
                     <small class="text-muted">
-                        Characters remaining: <span id="contentCounter">2000</span>
+                        <span id="contentCounter">2000</span>/2000 remaining
                     </small>
                     <span asp-validation-for="Content" class="text-danger"></span>
                 </div>
