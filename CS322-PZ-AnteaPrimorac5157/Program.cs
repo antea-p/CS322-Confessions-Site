@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using CS322_PZ_AnteaPrimorac5157.Repositories;
+using CS322_PZ_AnteaPrimorac5157.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddScoped<IConfessionRepository, ConfessionRepository>();
+builder.Services.AddScoped<IConfessionService, ConfessionService>();
 
 // Konfiguracija ASP.NET Identity
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>

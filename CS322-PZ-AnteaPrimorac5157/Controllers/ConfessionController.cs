@@ -3,18 +3,22 @@ using CS322_PZ_AnteaPrimorac5157.Models;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Ganss.Xss;
+using CS322_PZ_AnteaPrimorac5157.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace CS322_PZ_AnteaPrimorac5157.Controllers
 {
     public class ConfessionController : Controller
     {
-        private readonly ApplicationDbContext _context;
-        private readonly HtmlSanitizer _sanitizer;
+        private readonly IConfessionService _confessionService;
+        private readonly ILogger<ConfessionController> _logger;
 
-        public ConfessionController(ApplicationDbContext context, HtmlSanitizer sanitizer)
+        public ConfessionController(
+            IConfessionService confessionService,
+            ILogger<ConfessionController> logger)
         {
-            _context = context;
-            _sanitizer = sanitizer;
+            _confessionService = confessionService;
+            _logger = logger;
         }
 
         public IActionResult Create()
@@ -26,32 +30,27 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateConfessionViewModel model)
         {
-            var sanitizedTitle = _sanitizer.Sanitize(model.Title);
-            var sanitizedContent = _sanitizer.Sanitize(model.Content);
-
-            if (string.IsNullOrWhiteSpace(sanitizedTitle) || string.IsNullOrWhiteSpace(sanitizedContent))
+            if (!ModelState.IsValid)
             {
-                ModelState.AddModelError("", "Your submission contains only HTML tags that will be removed. Please provide actual content.");
                 return View(model);
             }
 
-            if (ModelState.IsValid)
+            try
             {
-                var confession = new Confession
-                {
-                    Title = sanitizedTitle,
-                    Content = sanitizedContent,
-                    DateCreated = DateTime.UtcNow,
-                    Likes = 0
-                };
-
-                _context.Confessions.Add(confession);
-                await _context.SaveChangesAsync();
+                await _confessionService.CreateConfessionAsync(model);
                 return RedirectToAction("Index", "Home");
             }
-
-            return View(model);
+            catch (ValidationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating confession");
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again.");
+                return View(model);
+            }
         }
-
     }
 }
