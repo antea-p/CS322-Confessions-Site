@@ -43,8 +43,8 @@ builder.Services.AddSingleton<HtmlSanitizer>(serviceProvider =>
     sanitizer.AllowedTags.Clear();
     sanitizer.AllowedTags.Add("b");
     sanitizer.AllowedTags.Add("i");
-    sanitizer.AllowedTags.Add("br");
-    sanitizer.AllowedTags.Add("p");
+    sanitizer.AllowedTags.Add("u");
+    sanitizer.AllowedTags.Add("s");
     return sanitizer;
 });
 

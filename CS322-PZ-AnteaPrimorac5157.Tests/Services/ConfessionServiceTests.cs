@@ -30,8 +30,8 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
             _sanitizer.AllowedTags.Clear();
             _sanitizer.AllowedTags.Add("b");
             _sanitizer.AllowedTags.Add("i");
-            _sanitizer.AllowedTags.Add("br");
-            _sanitizer.AllowedTags.Add("p");
+            _sanitizer.AllowedTags.Add("u");
+            _sanitizer.AllowedTags.Add("s");
 
             _service = new ConfessionService(
                 _repositoryMock.Object,
@@ -111,10 +111,16 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         [Theory]
         [InlineData("", "Valid Content")]
         [InlineData("   ", "Valid Content")]
-        [InlineData("<p></p>", "Valid Content")]
+        [InlineData("<b></b>", "Valid Content")]
+        [InlineData("<i></i>", "Valid Content")]
+        [InlineData("<u></u>", "Valid Content")]
+        [InlineData("<s></s>", "Valid Content")]
         [InlineData("Valid Title", "")]
         [InlineData("Valid Title", "   ")]
-        [InlineData("Valid Title", "<p></p>")]
+        [InlineData("Valid Title", "<b></b>")]
+        [InlineData("Valid Title", "<i></i>")]
+        [InlineData("Valid Title", "<u></u>")]
+        [InlineData("Valid Title", "<s></s>")]
         public async Task CreateConfessionAsync_WithInvalidInput_ThrowsValidationException(
        string title, string content)
         {
@@ -159,7 +165,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
             var model = new CreateConfessionViewModel
             {
                 Title = "Test Title",
-                Content = "<p><b>Bold</b> and <i>italic</i></p><script>alert('bad')</script>"
+                Content = "<b><i>Bold and italic</i></b> and <u><s>underlined strike</s></u><script>alert('bad')</script>"
             };
 
             _repositoryMock.Setup(r => r.AddAsync(It.IsAny<Confession>()))
@@ -169,7 +175,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
             var result = await _service.CreateConfessionAsync(model);
 
             // Assert
-            Assert.Equal("<p><b>Bold</b> and <i>italic</i></p>", result.Content);
+            Assert.Equal("<b><i>Bold and italic</i></b> and <u><s>underlined strike</s></u>", result.Content);
         }
 
         [Fact]
