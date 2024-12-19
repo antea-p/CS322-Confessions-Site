@@ -1,9 +1,8 @@
-﻿using CS322_PZ_AnteaPrimorac5157.Data;
-using CS322_PZ_AnteaPrimorac5157.Models;
+﻿using CS322_PZ_AnteaPrimorac5157.Models;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
-using Microsoft.AspNetCore.Mvc;
-using Ganss.Xss;
 using CS322_PZ_AnteaPrimorac5157.Services;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 
 namespace CS322_PZ_AnteaPrimorac5157.Controllers
@@ -21,11 +20,45 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             _logger = logger;
         }
 
+        // GET: /Confession
+        public async Task<IActionResult> Index()
+        {
+            try
+            {
+                var confessions = await _confessionService.GetConfessionsAsync();
+
+                var viewModels = confessions.Select(c => new ConfessionListViewModel
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Content = c.Content,
+                    DateCreated = c.DateCreated,
+                    Likes = c.Likes,
+                    CommentCount = c.Comments?.Count ?? 0
+                }).OrderByDescending(c => c.DateCreated).ToList();
+
+                if (!viewModels.Any())
+                {
+                    ViewData["Message"] = "Confessions list is empty!";
+                }
+
+                return View(viewModels);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while fetching confessions");
+                ViewData["Message"] = "An error occurred while loading confessions.";
+                return View(new List<ConfessionListViewModel>());
+            }
+        }
+
+        // GET: /Confession/Create
         public IActionResult Create()
         {
             return View();
         }
 
+        // POST: /Confession/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateConfessionViewModel model)
@@ -38,7 +71,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             try
             {
                 await _confessionService.CreateConfessionAsync(model);
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction(nameof(Index));
             }
             catch (ValidationException ex)
             {
@@ -50,6 +83,33 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                 _logger.LogError(ex, "Error occurred while creating confession");
                 ModelState.AddModelError("", "An unexpected error occurred. Please try again.");
                 return View(model);
+            }
+        }
+
+        // POST: /Confession/Delete/5
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var confession = await _confessionService.GetConfessionAsync(id);
+                if (confession == null)
+                {
+                    _logger.LogWarning("Attempt to delete non-existent confession with ID: {Id}", id);
+                    return NotFound();
+                }
+
+                await _confessionService.DeleteConfessionAsync(id);
+                _logger.LogInformation("Confession with ID: {Id} was successfully deleted", id);
+
+                return RedirectToAction(nameof(Index));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
+                return StatusCode(500, "An error occurred while deleting the confession.");
             }
         }
     }

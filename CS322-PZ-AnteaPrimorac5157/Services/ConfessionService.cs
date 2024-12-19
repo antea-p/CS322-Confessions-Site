@@ -23,6 +23,32 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             _logger = logger;
         }
 
+        public async Task<IEnumerable<Confession>> GetConfessionsAsync()
+        {
+            try
+            {
+                return await _repository.GetAllAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting all confessions");
+                throw;
+            }
+        }
+
+        public async Task<Confession?> GetConfessionAsync(int id)
+        {
+            try
+            {
+                return await _repository.GetByIdAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting confession with ID: {Id}", id);
+                throw;
+            }
+        }
+
         public async Task<Confession> CreateConfessionAsync(CreateConfessionViewModel model)
         {
             try
@@ -62,6 +88,25 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             {
                 _logger.LogError(ex, "Error occurred while creating confession");
                 throw new ApplicationException("Failed to create confession", ex);
+            }
+        }
+
+        public async Task DeleteConfessionAsync(int id)
+        {
+            try
+            {
+                var confession = await _repository.GetByIdAsync(id);
+                if (confession == null)
+                {
+                    throw new InvalidOperationException($"Confession with ID {id} not found");
+                }
+
+                await _repository.DeleteAsync(confession);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
+                throw;
             }
         }
     }

@@ -28,6 +28,149 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
+        public async Task Index_WithNoConfessions_ReturnsViewWithEmptyList()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetConfessionsAsync())
+                        .ReturnsAsync(new List<Confession>());
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            Assert.Empty(model);
+            Assert.Equal("Confessions list is empty!", result.ViewData["Message"]);
+        }
+
+        [Fact]
+        public async Task Index_WithSingleConfession_ReturnsViewWithOneConfession()
+        {
+            // Arrange
+            var confession = new Confession
+            {
+                Id = 1,
+                Title = "Test Confession",
+                Content = "Test Content",
+                DateCreated = DateTime.UtcNow,
+                Likes = 0,
+                Comments = new List<Comment>()
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionsAsync())
+                               .ReturnsAsync(new List<Confession> { confession });
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+
+            // isAssignableFrom provjerava možemo li ovaj objekt tretirati kao tip T, tj. IEnumerable<ConfessionListViewModel>
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            var confessionsList = Assert.Single(model); // provjeri da lista ima točno 1 element
+            Assert.Equal("Test Confession", confessionsList.Title);
+            Assert.Equal("Test Content", confessionsList.Content);
+            Assert.Equal(0, confessionsList.CommentCount);
+        }
+
+        [Fact]
+        public async Task Index_WithMultipleConfessions_ReturnsAllConfessionsOrderedByDate()
+        {
+            // Arrange
+            var oldDate = DateTime.UtcNow.AddDays(-1);
+            var newDate = DateTime.UtcNow;
+
+            var confessions = new List<Confession>
+            {
+                new Confession
+                {
+                    Title = "Old Confession",
+                    Content = "Old Content",
+                    DateCreated = oldDate,
+                    Comments = new List<Comment>()
+                },
+                new Confession
+                {
+                    Title = "New Confession",
+                    Content = "New Content",
+                    DateCreated = newDate,
+                    Comments = new List<Comment>()
+                }
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionsAsync())
+                           .ReturnsAsync(confessions);
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            var confessionsList = model.ToList();
+            Assert.Equal(2, confessionsList.Count);
+            Assert.Equal("New Confession", confessionsList[0].Title); // ispovijest sa tekućim datumom
+            Assert.Equal("Old Confession", confessionsList[1].Title); // ispovijest sa jučerašnjim datumom
+        }
+
+        [Fact]
+        public async Task Index_WithConfessionWithComments_ReturnsCorrectCommentCount()
+        {
+            // Arrange
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content",
+                DateCreated = DateTime.UtcNow,
+                Comments = new List<Comment>
+        {
+            new Comment { Content = "Comment 1", AuthorNickname = "User1" },
+            new Comment { Content = "Comment 2", AuthorNickname = "User2" }
+        }
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionsAsync())
+                           .ReturnsAsync(new List<Confession> { confession });
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            var confessionViewModel = Assert.Single(model);
+            Assert.Equal(2, confessionViewModel.CommentCount);
+        }
+
+        [Fact]
+        public async Task Index_WhenRepositoryThrowsException_ReturnsViewWithError()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetConfessionsAsync())
+                           .ThrowsAsync(new Exception("Database error"));
+
+            // Act
+            var result = (await _controller.Index()) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("An error occurred while loading confessions.", result.ViewData["Message"]);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            Assert.Empty(model);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    It.Is<LogLevel>(l => l == LogLevel.Error),
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.Is<Exception>(e => e.Message == "Database error"),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
         public void Create_GET_ReturnsViewResult()
         {
             // Act
@@ -56,8 +199,9 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
 
             // Assert
             var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            // Provjera da iz ConfessionControllera preusmjerava na Index rutu
             Assert.Equal("Index", redirectResult.ActionName);
-            Assert.Equal("Home", redirectResult.ControllerName);
+            Assert.Null(redirectResult.ControllerName);
         }
 
         [Fact]
@@ -137,6 +281,85 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
 
             // Provjeri da NIJE pozvan ConfessionService
             _serviceMock.Verify(s => s.CreateConfessionAsync(It.IsAny<CreateConfessionViewModel>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task Delete_WithValidId_RedirectsToIndex()
+        {
+            // Arrange
+            var confessionId = 1;
+            var confession = new Confession { Id = confessionId };
+
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+                .ReturnsAsync(confession);
+            _serviceMock.Setup(s => s.DeleteConfessionAsync(confessionId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _controller.Delete(confessionId);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(ConfessionController.Index), redirectResult.ActionName);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Information,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Delete_WithNonExistentId_ReturnsNotFound()
+        {
+            // Arrange
+            var confessionId = 9999;
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+                .ReturnsAsync((Confession?) null);
+
+            // Act
+            var result = await _controller.Delete(confessionId);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Warning,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Delete_WhenExceptionOccurs_Returns500Error()
+        {
+            // Arrange
+            var confessionId = 1;
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+                .ThrowsAsync(new Exception("Test exception"));
+
+            // Act
+            var result = await _controller.Delete(confessionId);
+
+            // Assert
+            var objectResult = Assert.IsType<ObjectResult>(result);
+            Assert.Equal(500, objectResult.StatusCode);
+            Assert.Equal("An error occurred while deleting the confession.", objectResult.Value);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
         }
     }
 }
