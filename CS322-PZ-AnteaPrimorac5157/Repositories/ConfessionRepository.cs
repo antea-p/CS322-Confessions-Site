@@ -21,6 +21,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             try
             {
                 return await _context.Confessions
+                    .Include(c => c.Comments)
                     .OrderByDescending(c => c.DateCreated)
                     .ToListAsync();
             }
@@ -31,22 +32,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             }
         }
 
-        public async Task<IEnumerable<Confession>> GetAllWithCommentsAsync()
-        {
-            try
-            {
-                return await _context.Confessions
-                    .Include(c => c.Comments)
-                    .OrderByDescending(c => c.DateCreated)
-                    .ToListAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting confessions with comments");
-                throw;
-            }
-        }
-
+      
         public async Task<Confession?> GetByIdAsync(int id)
         {
             try
