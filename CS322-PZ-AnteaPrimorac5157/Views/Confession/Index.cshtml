@@ -3,17 +3,33 @@
 @model IEnumerable<ConfessionListViewModel>
 @{
     ViewData["Title"] = "Home Page";
+    var currentSort = (bool)ViewData["CurrentSort"];
 }
 
 <div class="container">
-    @if (User?.Identity?.IsAuthenticated != true)
-    {
-        <div class="text-end mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        @if (User?.Identity?.IsAuthenticated != true)
+        {
             <a href="@Url.Action("Create", "Confession")" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Submit Confession
             </a>
+        }
+        else
+        {
+            <div></div> @* Prazan div *@
+        }
+
+        <div class="btn-group">
+            <a href="@Url.Action("Index", "Confession", new { sortByLikes = false })"
+               class="btn @(!currentSort ? "btn-primary" : "btn-outline-primary")">
+                <i class="fas fa-clock"></i> Sort by Date
+            </a>
+            <a href="@Url.Action("Index", "Confession", new { sortByLikes = true })"
+               class="btn @(currentSort ? "btn-primary" : "btn-outline-primary")">
+                <i class="fas fa-heart"></i> Sort by Popularity
+            </a>
         </div>
-    }
+    </div>
 
     @if (!Model.Any())
     {

@@ -61,6 +61,41 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
         }
 
         [Fact]
+        public async Task GetAllAsync_WhenSortedByLikes_ReturnsConfessionsOrderedByLikesDesc()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession1 = new Confession
+            {
+                Title = "Less Liked",
+                Content = "Content 1",
+                DateCreated = DateTime.UtcNow,
+                Likes = 5
+            };
+            var confession2 = new Confession
+            {
+                Title = "Most Liked",
+                Content = "Content 2",
+                DateCreated = DateTime.UtcNow.AddDays(-1),
+                Likes = 10
+            };
+
+            await context.Confessions.AddRangeAsync(confession1, confession2);
+            await context.SaveChangesAsync();
+
+            // Act
+            var result = await repository.GetTopConfessionsAsync(10);
+
+            // Assert
+            var confessions = result.ToList();
+            Assert.Equal(2, confessions.Count);
+            Assert.Equal("Most Liked", confessions[0].Title);
+            Assert.Equal("Less Liked", confessions[1].Title);
+        }
+
+        [Fact]
         public async Task GetByIdAsync_WithValidId_ReturnsConfession()
         {
             // Arrange

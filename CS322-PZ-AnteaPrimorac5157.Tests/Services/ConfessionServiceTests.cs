@@ -236,6 +236,66 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         }
 
         [Fact]
+        public async Task GetConfessionsAsync_WithSortByLikes_ReturnsConfessionsOrderedByLikesDesc()
+        {
+            // Arrange
+            var confessions = new List<Confession>
+            {
+                new Confession { Title = "Less Popular", Likes = 5, DateCreated = DateTime.UtcNow },
+                new Confession { Title = "Most Popular", Likes = 10, DateCreated = DateTime.UtcNow.AddDays(-1) }
+            };
+
+            _repositoryMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(confessions);
+
+            // Act
+            var result = (await _service.GetConfessionsAsync(orderByLikes: true)).ToList();
+
+            // Assert
+            Assert.Equal(2, result.Count);
+            Assert.Equal("Most Popular", result[0].Title);
+            Assert.Equal("Less Popular", result[1].Title);
+        }
+
+        [Fact]
+        public async Task GetConfessionsAsync_WithDefaultSort_ReturnsConfessionsOrderedByDateDesc()
+        {
+            // Arrange
+            var confessions = new List<Confession>
+            {
+                new Confession { Title = "Old Post", Likes = 10, DateCreated = DateTime.UtcNow.AddDays(-1) },
+                new Confession { Title = "New Post", Likes = 5, DateCreated = DateTime.UtcNow }
+            };
+
+            _repositoryMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(confessions);
+
+            // Act
+            var result = (await _service.GetConfessionsAsync(orderByLikes: false)).ToList();
+
+            // Assert
+            Assert.Equal(2, result.Count);
+            Assert.Equal("New Post", result[0].Title);
+            Assert.Equal("Old Post", result[1].Title);
+        }
+
+        [Fact]
+        public async Task GetConfessionsAsync_WithEmptyList_ReturnsEmptyList()
+        {
+            // Arrange
+            _repositoryMock.Setup(r => r.GetAllAsync())
+                .ReturnsAsync(new List<Confession>());
+
+            // Act
+            var resultByLikes = await _service.GetConfessionsAsync(orderByLikes: true);
+            var resultByDate = await _service.GetConfessionsAsync(orderByLikes: false);
+
+            // Assert
+            Assert.Empty(resultByLikes);
+            Assert.Empty(resultByDate);
+        }
+
+        [Fact]
         public async Task DeleteConfessionAsync_WithValidId_DeletesConfession()
         {
             // Arrange

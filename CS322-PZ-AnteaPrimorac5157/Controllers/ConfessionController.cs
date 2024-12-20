@@ -21,11 +21,11 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         }
 
         // GET: /Confession
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(bool sortByLikes = false)
         {
             try
             {
-                var confessions = await _confessionService.GetConfessionsAsync();
+                var confessions = await _confessionService.GetConfessionsAsync(sortByLikes);
 
                 var viewModels = confessions.Select(c => new ConfessionListViewModel
                 {
@@ -35,13 +35,14 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                     DateCreated = c.DateCreated,
                     Likes = c.Likes,
                     CommentCount = c.Comments?.Count ?? 0
-                }).OrderByDescending(c => c.DateCreated).ToList();
+                }).ToList();
 
                 if (!viewModels.Any())
                 {
                     ViewData["Message"] = "Confessions list is empty!";
                 }
 
+                ViewData["CurrentSort"] = sortByLikes;
                 return View(viewModels);
             }
             catch (Exception ex)

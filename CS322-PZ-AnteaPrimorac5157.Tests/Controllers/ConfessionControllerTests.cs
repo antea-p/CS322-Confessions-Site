@@ -31,7 +31,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         public async Task Index_WithNoConfessions_ReturnsViewWithEmptyList()
         {
             // Arrange
-            _serviceMock.Setup(s => s.GetConfessionsAsync())
+            _serviceMock.Setup(s => s.GetConfessionsAsync(false))
                         .ReturnsAsync(new List<Confession>());
 
             // Act
@@ -58,7 +58,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                 Comments = new List<Comment>()
             };
 
-            _serviceMock.Setup(s => s.GetConfessionsAsync())
+            _serviceMock.Setup(s => s.GetConfessionsAsync(false))
                                .ReturnsAsync(new List<Confession> { confession });
 
             // Act
@@ -76,7 +76,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
-        public async Task Index_WithMultipleConfessions_ReturnsAllConfessionsOrderedByDate()
+        public async Task Index_WithMultipleConfessions_DefaultSortsByDate()
         {
             // Arrange
             var oldDate = DateTime.UtcNow.AddDays(-1);
@@ -100,8 +100,8 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                 }
             };
 
-            _serviceMock.Setup(s => s.GetConfessionsAsync())
-                           .ReturnsAsync(confessions);
+            _serviceMock.Setup(s => s.GetConfessionsAsync(false))
+                                  .ReturnsAsync(confessions.OrderByDescending(c => c.DateCreated));
 
             // Act
             var result = (await _controller.Index()) as ViewResult;
@@ -113,6 +113,68 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             Assert.Equal(2, confessionsList.Count);
             Assert.Equal("New Confession", confessionsList[0].Title); // ispovijest sa tekućim datumom
             Assert.Equal("Old Confession", confessionsList[1].Title); // ispovijest sa jučerašnjim datumom
+        }
+
+        [Fact]
+        public async Task Index_WithMultipleConfessions_CanSortByLikes()
+        {
+            // Arrange
+            var confessions = new List<Confession>
+            {
+                new Confession
+                {
+                    Title = "Less Popular",
+                    Content = "Content",
+                    DateCreated = DateTime.UtcNow,
+                    Likes = 5,
+                    Comments = new List<Comment>()
+                },
+                new Confession
+                {
+                    Title = "More Popular",
+                    Content = "Content",
+                    DateCreated = DateTime.UtcNow.AddDays(-1),
+                    Likes = 10,
+                    Comments = new List<Comment>()
+                }
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionsAsync(true))
+                       .ReturnsAsync(confessions.OrderByDescending(c => c.Likes));
+
+            // Act
+            var result = (await _controller.Index(sortByLikes: true)) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsAssignableFrom<IEnumerable<ConfessionListViewModel>>(result.Model);
+            var confessionsList = model.ToList();
+            Assert.Equal(2, confessionsList.Count);
+            Assert.Equal("More Popular", confessionsList[0].Title);
+            Assert.Equal("Less Popular", confessionsList[1].Title);
+
+            var currentSort = result.ViewData["CurrentSort"];
+            Assert.NotNull(currentSort);
+            Assert.True(currentSort is bool);
+            Assert.True((bool)currentSort);
+        }
+
+        [Fact]
+        public async Task Index_WhenSortingByLikes_StoresCurrentSortInViewData()
+        {
+            // Arrange
+            _serviceMock.Setup(s => s.GetConfessionsAsync(true))
+                       .ReturnsAsync(new List<Confession>());
+
+            // Act
+            var result = (await _controller.Index(sortByLikes: true)) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var currentSort = result.ViewData["CurrentSort"];
+            Assert.NotNull(currentSort);
+            Assert.True(currentSort is bool);
+            Assert.True((bool) currentSort);
         }
 
         [Fact]
@@ -131,7 +193,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
             };
 
-            _serviceMock.Setup(s => s.GetConfessionsAsync())
+            _serviceMock.Setup(s => s.GetConfessionsAsync(false))
                            .ReturnsAsync(new List<Confession> { confession });
 
             // Act
@@ -148,7 +210,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         public async Task Index_WhenRepositoryThrowsException_ReturnsViewWithError()
         {
             // Arrange
-            _serviceMock.Setup(s => s.GetConfessionsAsync())
+            _serviceMock.Setup(s => s.GetConfessionsAsync(false))
                            .ThrowsAsync(new Exception("Database error"));
 
             // Act

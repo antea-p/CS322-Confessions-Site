@@ -23,11 +23,18 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             _logger = logger;
         }
 
-        public async Task<IEnumerable<Confession>> GetConfessionsAsync()
+        public async Task<IEnumerable<Confession>> GetConfessionsAsync(bool orderByLikes = false)
         {
             try
             {
-                return await _repository.GetAllAsync();
+                var confessions = await _repository.GetAllAsync();
+
+                if (orderByLikes)
+                {
+                    return confessions.OrderByDescending(c => c.Likes);
+                }
+
+                return confessions.OrderByDescending(c => c.DateCreated);
             }
             catch (Exception ex)
             {
