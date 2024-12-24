@@ -352,7 +352,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             var confessionId = 1;
             var confession = new Confession { Id = confessionId };
 
-            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, false))
                 .ReturnsAsync(confession);
             _serviceMock.Setup(s => s.DeleteConfessionAsync(confessionId))
                 .Returns(Task.CompletedTask);
@@ -379,7 +379,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         {
             // Arrange
             var confessionId = 9999;
-            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, false))
                 .ReturnsAsync((Confession?) null);
 
             // Act
@@ -403,7 +403,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         {
             // Arrange
             var confessionId = 1;
-            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId))
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, false))
                 .ThrowsAsync(new Exception("Test exception"));
 
             // Act

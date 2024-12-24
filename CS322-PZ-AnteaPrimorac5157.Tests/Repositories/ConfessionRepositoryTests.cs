@@ -142,12 +142,48 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
             await context.SaveChangesAsync();
 
             // Act
-            var result = await repository.GetWithCommentsAsync(confession.Id);
+            var result = await repository.GetByIdAsync(confession.Id, includeComments: true);
 
             // Assert
             Assert.NotNull(result);
             Assert.Single(result.Comments);
             Assert.Equal(comment.Content, result.Comments.First().Content);
+        }
+
+        [Fact]
+        public async Task GetByIdAsync_WithCommentsDisabled_DoesNotIncludeComments()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content"
+            };
+            var comment = new Comment
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester",
+                Confession = confession
+            };
+
+            confession.Comments.Add(comment);
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            context.ChangeTracker.Clear();
+
+            // Act
+            var result = await repository.GetByIdAsync(confession.Id, includeComments: false);
+
+            // Assert
+            // Komentari nisu učitani, ali ostala polja jesu
+            Assert.NotNull(result);
+            Assert.Empty(result.Comments);
+            Assert.Equal("Test Confession", result.Title);
+            Assert.Equal("Test Content", result.Content);
         }
 
         [Fact]
@@ -323,7 +359,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
             await context.SaveChangesAsync();
 
             // Act
-            var result = await repository.GetWithCommentsAsync(9999);
+            var result = await repository.GetByIdAsync(9999, includeComments: true);
 
             // Assert
             Assert.Null(result);

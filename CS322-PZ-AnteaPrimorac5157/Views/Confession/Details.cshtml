@@ -1,0 +1,96 @@
+﻿@using CS322_PZ_AnteaPrimorac5157.ViewModels
+@model ConfessionDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container">
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>#@Model.Id</span>
+            @if (User?.Identity?.IsAuthenticated == true)
+            {
+                <div>
+                    <button onclick="confirmDelete(@Model.Id)"
+                            class="btn btn-sm btn-danger">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <form id="deleteForm-@Model.Id"
+                          asp-action="Delete" asp-route-id="@Model.Id"
+                          method="post" style="display: none;">
+                        @Html.AntiForgeryToken()
+                    </form>
+                </div>
+            }
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">@Model.Title</h4>
+            <p class="card-text">@Html.Raw(Model.Content)</p>
+
+            <div class="confession-stats">
+                <span>@Model.DateCreated.ToString("dd MMM yyyy HH:mm")</span>
+                <form asp-action="ToggleLike" asp-route-id="@Model.Id"
+                      method="post" class="d-inline ms-3">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm @(Model.UserHasLiked ? "btn-secondary" : "btn-outline-secondary")">
+                        <i class="fas fa-thumbs-up"></i> @Model.Likes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="comments-section">
+        <h5>Comments (@Model.Comments.Count)</h5>
+
+        <form asp-action="AddComment" asp-route-id="@Model.Id" method="post" class="mb-4">
+            @Html.AntiForgeryToken()
+            <div class="form-group mb-3">
+                <label asp-for="NewCommentAuthorNickname">Your Nickname</label>
+                <input asp-for="NewCommentAuthorNickname" class="form-control" required maxlength="50" />
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="NewCommentContent">Your Comment</label>
+                <textarea asp-for="NewCommentContent" class="form-control" rows="3" required maxlength="500"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Post Comment</button>
+        </form>
+
+        @foreach (var comment in Model.Comments.OrderByDescending(c => c.DateCreated))
+        {
+            <div class="card mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="card-subtitle mb-2 text-muted">@comment.AuthorNickname</h6>
+                        <small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
+                    </div>
+                    <p class="card-text">@comment.Content</p>
+                    @if (User?.Identity?.IsAuthenticated == true)
+                    {
+                        <form asp-action="DeleteComment"
+                              asp-route-confessionId="@Model.Id"
+                              asp-route-commentId="@comment.Id"
+                              method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function confirmDelete(id) {
+            if (confirm('Are you sure you want to delete this confession? This action cannot be undone.')) {
+                document.getElementById('deleteForm-' + id).submit();
+            }
+        }
+    </script>
+}

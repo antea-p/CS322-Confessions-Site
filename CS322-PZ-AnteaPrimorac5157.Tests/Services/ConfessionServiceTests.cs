@@ -208,7 +208,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
                 Content = "Test Content"
             };
 
-            _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, It.IsAny<bool>()))
                 .ReturnsAsync(expectedConfession);
 
             // Act
@@ -225,7 +225,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         public async Task GetConfessionAsync_WithInvalidId_ReturnsNull()
         {
             // Arrange
-            _repositoryMock.Setup(r => r.GetByIdAsync(9999))
+            _repositoryMock.Setup(r => r.GetByIdAsync(9999, false))
                 .ReturnsAsync((Confession?)null);
 
             // Act
@@ -306,7 +306,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
                 Content = "Test Content"
             };
 
-            _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
                 .ReturnsAsync(confession);
             _repositoryMock.Setup(r => r.DeleteAsync(confession))
                 .Returns(Task.CompletedTask);
@@ -330,7 +330,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         public async Task DeleteConfessionAsync_WithNonExistentId_ThrowsInvalidOperationException()
         {
             // Arrange
-            _repositoryMock.Setup(r => r.GetByIdAsync(9999))
+            _repositoryMock.Setup(r => r.GetByIdAsync(9999, false))
                 .ReturnsAsync((Confession?)null);
 
             // Act & Assert
@@ -347,7 +347,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
             var confession = new Confession { Id = 1 };
             var expectedError = new Exception("Database error");
 
-            _repositoryMock.Setup(r => r.GetByIdAsync(1))
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
                 .ReturnsAsync(confession);
             _repositoryMock.Setup(r => r.DeleteAsync(confession))
                 .ThrowsAsync(expectedError);

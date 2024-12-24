@@ -37,11 +37,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                     CommentCount = c.Comments?.Count ?? 0
                 }).ToList();
 
-                if (!viewModels.Any())
-                {
-                    ViewData["Message"] = "Confessions list is empty!";
-                }
-
+                ViewData["Message"] = !viewModels.Any() ? "Confessions list is empty!" : null;
                 ViewData["CurrentSort"] = sortByLikes;
                 return View(viewModels);
             }
@@ -49,9 +45,77 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             {
                 _logger.LogError(ex, "Error occurred while fetching confessions");
                 ViewData["Message"] = "An error occurred while loading confessions.";
+                ViewData["CurrentSort"] = false;
                 return View(new List<ConfessionListViewModel>());
             }
         }
+
+        // GET: /Confession/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            try
+            {
+                var confession = await _confessionService.GetConfessionAsync(id, includeComments: true);
+                if (confession == null)
+                {
+                    return NotFound();
+                }
+
+                //bool userHasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
+
+                var viewModel = new ConfessionDetailsViewModel
+                {
+                    Id = confession.Id,
+                    Title = confession.Title,
+                    Content = confession.Content,
+                    DateCreated = confession.DateCreated,
+                    Likes = confession.Likes,
+                    UserHasLiked = false, // set to userHasLiked
+                    Comments = confession.Comments.Select(c => new CommentViewModel
+                    {
+                        Id = c.Id,
+                        Content = c.Content,
+                        AuthorNickname = c.AuthorNickname,
+                        DateCreated = c.DateCreated
+                    }).ToList()
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting confession details for ID: {Id}", id);
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // POST: /Confession/ToggleLike/5
+        //[HttpPost]
+        //public async Task<IActionResult> ToggleLike(int id)
+        //{
+        //    try
+        //    {
+        //        bool hasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
+
+        //        if (hasLiked)
+        //        {
+        //            await _confessionService.DecrementLikesAsync(id);
+        //            HttpContext.Session.SetBool($"Liked_{id}", false);
+        //        }
+        //        else
+        //        {
+        //            await _confessionService.IncrementLikesAsync(id);
+        //            HttpContext.Session.SetBool($"Liked_{id}", true);
+        //        }
+
+        //        return RedirectToAction(nameof(Details), new { id });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _logger.LogError(ex, "Error occurred while toggling like for confession ID: {Id}", id);
+        //        return RedirectToAction(nameof(Details), new { id });
+        //    }
+        //}
 
         // GET: /Confession/Create
         public IActionResult Create()

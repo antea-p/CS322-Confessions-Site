@@ -43,11 +43,11 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             }
         }
 
-        public async Task<Confession?> GetConfessionAsync(int id)
+        public async Task<Confession?> GetConfessionAsync(int id, bool includeComments = false)
         {
             try
             {
-                return await _repository.GetByIdAsync(id);
+                return await _repository.GetByIdAsync(id, includeComments);
             }
             catch (Exception ex)
             {
@@ -113,6 +113,32 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task IncrementLikesAsync(int id)
+        {
+            try
+            {
+                await _repository.IncrementLikesAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while incrementing likes for confession ID: {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task DecrementLikesAsync(int id)
+        {
+            try
+            {
+                await _repository.DecrementLikesAsync(id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while decrementing likes for confession ID: {Id}", id);
                 throw;
             }
         }

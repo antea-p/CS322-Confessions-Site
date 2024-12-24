@@ -3,7 +3,7 @@
 @model IEnumerable<ConfessionListViewModel>
 @{
     ViewData["Title"] = "Home Page";
-    var currentSort = (bool)ViewData["CurrentSort"];
+    var currentSort = ViewData["CurrentSort"] as bool? ?? false;
 }
 
 <div class="container">
@@ -56,7 +56,6 @@
                                 class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i> Delete
                         </button>
-                        @* Skrivena forma za brisanje *@
                         <form id="deleteForm-@confession.Id"
                               action="@Url.Action("Delete", "Confession", new { id = confession.Id })"
                               method="post" style="display: none;">
@@ -65,20 +64,23 @@
                     </div>
                 }
             </div>
-            <div class="card-body">
-                <h5 class="card-title">@confession.Title</h5>
-                <p class="card-text">@Html.Raw(confession.Content)</p>
+            <a href="@Url.Action("Details", "Confession", new { id = confession.Id })"
+               class="card-body-link">
+                <div class="card-body">
+                    <h5 class="card-title">@confession.Title</h5>
+                    <p class="card-text">@Html.Raw(confession.Content)</p>
 
-                <div class="confession-stats">
-                    <span>@confession.DateCreated.ToString("dd MMM yy")</span>
-                    <span class="ms-3">
-                        <i class="fas fa-thumbs-up"></i> @confession.Likes
-                    </span>
-                    <span class="ms-3">
-                        <i class="fas fa-comment"></i> @confession.CommentCount
-                    </span>
+                    <div class="confession-stats">
+                        <span>@confession.DateCreated.ToString("dd MMM yy")</span>
+                        <span class="ms-3">
+                            <i class="fas fa-thumbs-up"></i> @confession.Likes
+                        </span>
+                        <span class="ms-3">
+                            <i class="fas fa-comment"></i> @confession.CommentCount
+                        </span>
+                    </div>
                 </div>
-            </div>
+            </a>
         </div>
     }
 </div>

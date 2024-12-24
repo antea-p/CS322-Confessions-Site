@@ -101,6 +101,29 @@ body {
     padding: var(--space-md);
 }
 
+.card-body-link {
+    text-decoration: none;
+    color: var(--text-color);
+    display: block;
+    transition: var(--transition-base);
+}
+
+.card-body-link:hover {
+    text-decoration: none;
+    color: var(--text-color);
+    background-color: rgba(136, 68, 255, 0.1);
+    cursor: pointer;
+}
+
+.card-body-link .card-title {
+    color: var(--text-color);
+    transition: var(--transition-base);
+}
+
+.card-body-link:hover .card-title {
+    color: var(--accent-blue);
+}
+
 .confession-header-left {
     color: var(--muted-text);
     font-size: var(--text-sm);

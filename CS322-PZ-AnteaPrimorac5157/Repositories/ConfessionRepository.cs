@@ -32,31 +32,41 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             }
         }
 
-      
-        public async Task<Confession?> GetByIdAsync(int id)
+        async Task<Confession?> IRepository<Confession>.GetByIdAsync(int id)
+        {
+            return await GetByIdAsync(id, false);
+        }
+
+
+        public async Task<Confession?> GetByIdAsync(int id, bool includeComments = false)
         {
             try
             {
-                return await _context.Confessions.FindAsync(id);
+                var query = _context.Confessions.AsQueryable();
+
+                if (includeComments)
+                {
+                    query = query.Include(c => c.Comments);
+                    return await query.FirstOrDefaultAsync(c => c.Id == id);
+                }
+                else
+                {
+                    return await query
+                        .Select(c => new Confession
+                        {
+                            Id = c.Id,
+                            Title = c.Title,
+                            Content = c.Content,
+                            DateCreated = c.DateCreated,
+                            Likes = c.Likes,
+                            Comments = new List<Comment>()
+                        })
+                        .FirstOrDefaultAsync(c => c.Id == id);
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while getting confession with ID: {Id}", id);
-                throw;
-            }
-        }
-
-        public async Task<Confession?> GetWithCommentsAsync(int id)
-        {
-            try
-            {
-                return await _context.Confessions
-                    .Include(c => c.Comments)
-                    .FirstOrDefaultAsync(c => c.Id == id);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting confession with comments for ID: {Id}", id);
                 throw;
             }
         }
@@ -154,7 +164,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
                 if (confession != null)
                 {
                     confession.Likes++;
-                    await UpdateAsync(confession);
+                    await _context.SaveChangesAsync();
                 }
             }
             catch (Exception ex)
