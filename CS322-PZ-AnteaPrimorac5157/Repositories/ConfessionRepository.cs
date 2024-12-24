@@ -164,7 +164,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
                 if (confession != null)
                 {
                     confession.Likes++;
-                    await _context.SaveChangesAsync();
+                    await UpdateAsync(confession);
                 }
             }
             catch (Exception ex)

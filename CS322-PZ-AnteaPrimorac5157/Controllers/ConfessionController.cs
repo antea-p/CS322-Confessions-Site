@@ -4,6 +4,7 @@ using CS322_PZ_AnteaPrimorac5157.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
+using CS322_PZ_AnteaPrimorac5157.Extensions;
 
 namespace CS322_PZ_AnteaPrimorac5157.Controllers
 {
@@ -61,7 +62,8 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                     return NotFound();
                 }
 
-                //bool userHasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
+                bool userHasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
+                _logger.Log(LogLevel.Information, $"userHasLiked: {userHasLiked}");
 
                 var viewModel = new ConfessionDetailsViewModel
                 {
@@ -70,7 +72,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                     Content = confession.Content,
                     DateCreated = confession.DateCreated,
                     Likes = confession.Likes,
-                    UserHasLiked = false, // set to userHasLiked
+                    UserHasLiked = userHasLiked,
                     Comments = confession.Comments.Select(c => new CommentViewModel
                     {
                         Id = c.Id,
@@ -90,32 +92,44 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         }
 
         // POST: /Confession/ToggleLike/5
-        //[HttpPost]
-        //public async Task<IActionResult> ToggleLike(int id)
-        //{
-        //    try
-        //    {
-        //        bool hasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
+        [HttpPost]
+        public async Task<IActionResult> ToggleLike(int id)
+        {
+            try
+            {
+                bool? hasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? null;
+                _logger.Log(LogLevel.Information, $"hasLiked: {hasLiked}");
+                var confession = await _confessionService.GetConfessionAsync(id);
 
-        //        if (hasLiked)
-        //        {
-        //            await _confessionService.DecrementLikesAsync(id);
-        //            HttpContext.Session.SetBool($"Liked_{id}", false);
-        //        }
-        //        else
-        //        {
-        //            await _confessionService.IncrementLikesAsync(id);
-        //            HttpContext.Session.SetBool($"Liked_{id}", true);
-        //        }
 
-        //        return RedirectToAction(nameof(Details), new { id });
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error occurred while toggling like for confession ID: {Id}", id);
-        //        return RedirectToAction(nameof(Details), new { id });
-        //    }
-        //}
+
+                if (hasLiked == null || hasLiked == true)
+                {
+                    await _confessionService.IncrementLikesAsync(id);
+                    _logger.Log(LogLevel.Information, $"Incremented like. Updated likes count: {confession.Likes}");
+
+                    HttpContext.Session.SetBool($"Liked_{id}", false);
+                    _logger.Log(LogLevel.Information, $"hasLiked is now (should be true): {hasLiked}");
+
+                }
+                else
+                {
+                    await _confessionService.DecrementLikesAsync(id);
+                    _logger.Log(LogLevel.Information, $"Decremented like. Updated likes count: {confession.Likes}");
+
+                    HttpContext.Session.SetBool($"Liked_{id}", true);
+                    _logger.Log(LogLevel.Information, $"hasLiked is now (should be false): {hasLiked}");
+
+                }
+
+                return RedirectToAction(nameof(Details), new { id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while toggling like for confession ID: {Id}", id);
+                return RedirectToAction(nameof(Details), new { id });
+            }
+        }
 
         // GET: /Confession/Create
         public IActionResult Create()

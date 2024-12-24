@@ -5,6 +5,7 @@ using Ganss.Xss;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using CS322_PZ_AnteaPrimorac5157.Repositories;
 using CS322_PZ_AnteaPrimorac5157.Services;
+using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +68,13 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAssertion(context => false)); // Zabrani account manage stranice
 });
 
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 var app = builder.Build();
 
 // Seed za admina (osigurava da uvijek postoji bar jedan)
@@ -125,5 +133,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
+
+app.UseSession();
 
 app.Run();
