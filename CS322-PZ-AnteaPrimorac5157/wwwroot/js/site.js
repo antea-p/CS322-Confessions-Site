@@ -3,10 +3,18 @@
 
 // Write your JavaScript code.
 
+const alertMessage = 'Are you sure you want to delete this confession? This action cannot be undone.';
+
 
 // Podnosi zahtjev za brisanje ispovijesti putem skrivene forme (u skladu sa HTTP specifikacijama)
 function confirmDelete(confessionId) {
-    if (confirm('Are you sure you want to delete this confession? This action cannot be undone.')) {
+    if (confirm(alertMessage)) {
         document.getElementById('deleteForm-' + confessionId).submit();
+    }
+}
+
+function confirmDeleteComment(confessionId, commentId) {
+    if (confirm(alertMessage)) {
+        document.getElementById('deleteCommentForm-' + confessionId + '-' + commentId).submit();
     }
 }

@@ -62,8 +62,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                     return NotFound();
                 }
 
-                bool userHasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? false;
-                _logger.Log(LogLevel.Information, $"userHasLiked: {userHasLiked}");
+                bool userHasLiked = HttpContext.Session.HasLiked(id);
 
                 var viewModel = new ConfessionDetailsViewModel
                 {
@@ -97,29 +96,20 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         {
             try
             {
-                bool? hasLiked = HttpContext.Session.GetBool($"Liked_{id}") ?? null;
-                _logger.Log(LogLevel.Information, $"hasLiked: {hasLiked}");
-                var confession = await _confessionService.GetConfessionAsync(id);
+                bool hasLiked = HttpContext.Session.HasLiked(id);
+                _logger.LogInformation($"Confession {id} - Current like state: {hasLiked}");
 
-
-
-                if (hasLiked == null || hasLiked == true)
+                if (hasLiked)
                 {
-                    await _confessionService.IncrementLikesAsync(id);
-                    _logger.Log(LogLevel.Information, $"Incremented like. Updated likes count: {confession.Likes}");
-
-                    HttpContext.Session.SetBool($"Liked_{id}", false);
-                    _logger.Log(LogLevel.Information, $"hasLiked is now (should be true): {hasLiked}");
-
+                    await _confessionService.DecrementLikesAsync(id);
+                    HttpContext.Session.SetLiked(id, false);
+                    _logger.LogInformation($"Confession {id} - Decremented likes, set liked to false");
                 }
                 else
                 {
-                    await _confessionService.DecrementLikesAsync(id);
-                    _logger.Log(LogLevel.Information, $"Decremented like. Updated likes count: {confession.Likes}");
-
-                    HttpContext.Session.SetBool($"Liked_{id}", true);
-                    _logger.Log(LogLevel.Information, $"hasLiked is now (should be false): {hasLiked}");
-
+                    await _confessionService.IncrementLikesAsync(id);
+                    HttpContext.Session.SetLiked(id, true);
+                    _logger.LogInformation($"Confession {id} - Incremented likes, set liked to true");
                 }
 
                 return RedirectToAction(nameof(Details), new { id });
@@ -189,6 +179,25 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             {
                 _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
                 return StatusCode(500, "An error occurred while deleting the confession.");
+            }
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteComment(int confessionId, int commentId)
+        {
+            try
+            {
+                await _confessionService.DeleteCommentAsync(confessionId, commentId);
+                _logger.LogInformation("Comment {CommentId} deleted from confession {ConfessionId}", commentId, confessionId);
+
+                return RedirectToAction(nameof(Details), new { id = confessionId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in controller while deleting comment {CommentId} from confession {ConfessionId}", commentId, confessionId);
+                return RedirectToAction(nameof(Details), new { id = confessionId });
             }
         }
     }

@@ -64,21 +64,29 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
                         <h6 class="card-subtitle mb-2 text-muted">@comment.AuthorNickname</h6>
-                        <small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
+                        @if (User?.Identity?.IsAuthenticated == true)
+                        {
+                            <form asp-action="DeleteComment"
+                                  asp-route-confessionId="@Model.Id"
+                                  asp-route-commentId="@comment.Id"
+                                  method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button onclick="confirmDeleteComment(@Model.Id, @comment.Id)"
+                                        class="btn btn-sm btn-danger">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                                <form id="deleteCommentForm-@Model.Id-@comment.Id"
+                                      asp-action="DeleteComment"
+                                      asp-route-confessionId="@Model.Id"
+                                      asp-route-commentId="@comment.Id"
+                                      method="post" style="display: none;">
+                                    @Html.AntiForgeryToken()
+                                </form>
+                            </form>
+                        }
                     </div>
                     <p class="card-text">@comment.Content</p>
-                    @if (User?.Identity?.IsAuthenticated == true)
-                    {
-                        <form asp-action="DeleteComment"
-                              asp-route-confessionId="@Model.Id"
-                              asp-route-commentId="@comment.Id"
-                              method="post" class="d-inline">
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    }
+                    <small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
                 </div>
             </div>
         }

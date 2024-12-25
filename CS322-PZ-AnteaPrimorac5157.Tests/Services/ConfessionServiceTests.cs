@@ -367,5 +367,47 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
+
+        [Fact]
+        public async Task DeleteCommentAsync_CallsRepository()
+        {
+            // Arrange
+            var confessionId = 1;
+            var commentId = 1;
+
+            _repositoryMock.Setup(r => r.DeleteCommentAsync(confessionId, commentId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _service.DeleteCommentAsync(confessionId, commentId);
+
+            // Assert
+            _repositoryMock.Verify(r => r.DeleteCommentAsync(confessionId, commentId), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteCommentAsync_WhenRepositoryThrows_LogsAndRethrows()
+        {
+            // Arrange
+            var confessionId = 1;
+            var commentId = 1;
+            var exception = new Exception("Test exception");
+
+            _repositoryMock.Setup(r => r.DeleteCommentAsync(confessionId, commentId))
+                .ThrowsAsync(exception);
+
+            // Act & Assert
+            var ex = await Assert.ThrowsAsync<Exception>(() =>
+                _service.DeleteCommentAsync(confessionId, commentId));
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    It.IsAny<Exception>(),
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+                Times.Once);
+        }
     }
 }

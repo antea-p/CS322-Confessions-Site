@@ -90,7 +90,12 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
         {
             try
             {
-                _context.Entry(confession).State = EntityState.Modified;
+                var entry = _context.Entry(confession);
+                if (entry.State == EntityState.Detached)
+                {
+                    _context.Confessions.Attach(confession);
+                }
+                entry.State = EntityState.Modified;
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -110,6 +115,26 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", confession.Id);
+                throw;
+            }
+        }
+
+        public async Task DeleteCommentAsync(int confessionId, int commentId)
+        {
+            try
+            {
+                var comment = await _context.Comments
+                    .FirstOrDefaultAsync(c => c.ConfessionId == confessionId && c.Id == commentId);
+
+                if (comment != null)
+                {
+                    _context.Comments.Remove(comment);
+                    await _context.SaveChangesAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting comment {CommentId} from confession {ConfessionId}", commentId, confessionId);
                 throw;
             }
         }

@@ -117,6 +117,19 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             }
         }
 
+        public async Task DeleteCommentAsync(int confessionId, int commentId)
+        {
+            try
+            {
+                await _repository.DeleteCommentAsync(confessionId, commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in service while deleting comment {CommentId} from confession {ConfessionId}", commentId, confessionId);
+                throw;
+            }
+        }
+
         public async Task IncrementLikesAsync(int id)
         {
             try

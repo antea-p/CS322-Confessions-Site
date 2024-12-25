@@ -5,6 +5,7 @@ using Ganss.Xss;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Transactions;
 using Xunit;
 
 namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
@@ -242,31 +243,6 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
         }
 
         [Fact]
-        public async Task IncrementLikesAsync_IncreasesLikeCount()
-        {
-            // Arrange
-            using var context = new ApplicationDbContext(_contextOptions);
-            var repository = new ConfessionRepository(context, _loggerMock.Object);
-
-            var confession = new Confession
-            {
-                Title = "Test Confession",
-                Content = "Test Content",
-                Likes = 0
-            };
-            await context.Confessions.AddAsync(confession);
-            await context.SaveChangesAsync();
-
-            // Act
-            await repository.IncrementLikesAsync(confession.Id);
-
-            // Assert
-            var updatedConfession = await context.Confessions.FindAsync(confession.Id);
-            Assert.NotNull(updatedConfession);
-            Assert.Equal(1, updatedConfession.Likes);
-        }
-
-        [Fact]
         public async Task GetByIdAsync_WithNonExistentId_ReturnsNull()
         {
             // Arrange
@@ -287,6 +263,125 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
                     (Func<It.IsAnyType, Exception?, string>)It.IsAny<object>()
                 ),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task IncrementLikesAsync_IncreasesLikeCount()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content",
+                Likes = 0
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            context.ChangeTracker.Clear();
+
+            // Act
+            await repository.IncrementLikesAsync(confession.Id);
+
+            // Assert
+            var updatedConfession = await context.Confessions.FindAsync(confession.Id);
+            Assert.NotNull(updatedConfession);
+            Assert.Equal(1, updatedConfession.Likes);
+        }
+
+        [Fact]
+        public async Task IncrementLikesAsync_WithConcurrentAccess_HandlesRaceCondition()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content",
+                Likes = 0
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            // Act
+            var tasks = Enumerable.Range(0, 5).Select(async _ =>
+            {
+                using var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
+                using var newContext = new ApplicationDbContext(_contextOptions);
+                var newRepo = new ConfessionRepository(newContext, _loggerMock.Object);
+
+                var retryCount = 0;
+                while (retryCount < 3)
+                {
+                    try
+                    {
+                        await newRepo.IncrementLikesAsync(confession.Id);
+                        scope.Complete();
+                        break;
+                    }
+                    catch (DbUpdateConcurrencyException)
+                    {
+                        retryCount++;
+                        if (retryCount == 3) throw;
+                    }
+                }
+            });
+
+            await Task.WhenAll(tasks);
+
+            // Assert
+            using var verifyContext = new ApplicationDbContext(_contextOptions);
+            var updatedConfession = await verifyContext.Confessions.FindAsync(confession.Id);
+            Assert.NotNull(updatedConfession);
+            Assert.Equal(5, updatedConfession.Likes);
+        }
+
+        [Fact]
+        public async Task IncrementLikesAsync_WithNonExistentConfession_DoesNothing()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            // Act & Assert
+            await repository.IncrementLikesAsync(9999); // Ne bi trebalo izbaciti izuzetak
+        }
+
+        [Fact]
+        public async Task IncrementLikesAsync_WithTrackedEntity_UpdatesCorrectly()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content",
+                Likes = 0
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            context.ChangeTracker.Clear();
+
+            // Act
+            await repository.IncrementLikesAsync(confession.Id);
+
+            // Assert
+            var updatedConfession = await context.Confessions.FindAsync(confession.Id);
+            Assert.NotNull(updatedConfession);
+            Assert.Equal(1, updatedConfession.Likes);
+
+            // Verify in new context
+            using var verifyContext = new ApplicationDbContext(_contextOptions);
+            var reloadedConfession = await verifyContext.Confessions.FindAsync(confession.Id);
+            Assert.NotNull(reloadedConfession);
+            Assert.Equal(1, reloadedConfession.Likes);
         }
 
         [Fact]
@@ -363,6 +458,49 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
 
             // Assert
             Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task DeleteCommentAsync_WithValidIds_DeletesComment()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content"
+            };
+            var comment = new Comment
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester",
+                Confession = confession
+            };
+            confession.Comments.Add(comment);
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            context.ChangeTracker.Clear();
+
+            // Act
+            await repository.DeleteCommentAsync(confession.Id, comment.Id);
+
+            // Assert
+            var deletedComment = await context.Comments.FindAsync(comment.Id);
+            Assert.Null(deletedComment);
+        }
+
+        [Fact]
+        public async Task DeleteCommentAsync_WithInvalidIds_DoesNothing()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            // Act & Assert
+            await repository.DeleteCommentAsync(9999, 9999); // Ne smije izbaciti izuzetak
         }
     }
 }

@@ -2,6 +2,9 @@
 using CS322_PZ_AnteaPrimorac5157.Models;
 using CS322_PZ_AnteaPrimorac5157.Services;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
+using CS322_PZ_AnteaPrimorac5157.Extensions;
+using CS322_PZ_AnteaPrimorac5157.Tests.TestHelpers;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -233,6 +236,118 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
+        public async Task Details_LoadsConfessionWithComments_AndUserLikeState()
+        {
+            // Arrange
+            var confessionId = 1;
+            var confession = new Confession
+            {
+                Id = confessionId,
+                Comments = new List<Comment>
+        {
+            new Comment { Content = "Test Comment" }
+        }
+            };
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = new MockSession();
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, true))
+                .ReturnsAsync(confession);
+
+            // Act
+            var result = await _controller.Details(confessionId) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsType<ConfessionDetailsViewModel>(result.Model);
+            Assert.Single(model.Comments);
+            Assert.False(model.UserHasLiked);
+        }
+
+        [Fact]
+        public async Task Details_LoadsCorrectLikeStateFromSession()
+        {
+            // Arrange
+            var confessionId = 1;
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = new MockSession();
+            httpContext.Session.SetLiked(confessionId, true);
+
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            var confession = new Confession { Id = confessionId };
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, true))
+                .ReturnsAsync(confession);
+
+            // Act
+            var result = await _controller.Details(confessionId) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsType<ConfessionDetailsViewModel>(result.Model);
+            Assert.True(model.UserHasLiked);
+        }
+
+        [Fact]
+        public async Task ToggleLike_WhenNotLiked_IncrementsAndSetsSession()
+        {
+            // Arrange
+            var confessionId = 1;
+            var confession = new Confession { Id = confessionId, Likes = 0 };
+
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = new MockSession();
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, false))
+                .ReturnsAsync(confession);
+            _serviceMock.Setup(s => s.IncrementLikesAsync(confessionId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _controller.ToggleLike(confessionId);
+
+            // Assert
+            _serviceMock.Verify(s => s.IncrementLikesAsync(confessionId), Times.Once);
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(ConfessionController.Details), redirectResult.ActionName);
+        }
+
+        [Fact]
+        public async Task ToggleLike_WhenAlreadyLiked_DecrementsAndClearsSession()
+        {
+            // Arrange
+            var confessionId = 1;
+            var httpContext = new DefaultHttpContext();
+            httpContext.Session = new MockSession();
+            httpContext.Session.SetLiked(confessionId, true);
+
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
+
+            // Act
+            var result = await _controller.ToggleLike(confessionId);
+
+            // Assert  
+            _serviceMock.Verify(s => s.DecrementLikesAsync(confessionId), Times.Once);
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(ConfessionController.Details), redirectResult.ActionName);
+        }
+
+        [Fact]
         public void Create_GET_ReturnsViewResult()
         {
             // Act
@@ -421,6 +536,54 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                     It.Is<It.IsAnyType>((v, t) => true),
                     It.IsAny<Exception>(),
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteComment_WhenUserAuthenticated_DeletesAndRedirects()
+        {
+            // Arrange
+            var confessionId = 1;
+            var commentId = 1;
+
+            _serviceMock.Setup(s => s.DeleteCommentAsync(confessionId, commentId))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _controller.DeleteComment(confessionId, commentId);
+
+            // Assert
+            _serviceMock.Verify(s => s.DeleteCommentAsync(confessionId, commentId), Times.Once);
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(ConfessionController.Details), redirectResult.ActionName);
+            Assert.Equal(confessionId, redirectResult.RouteValues["id"]);
+        }
+
+        [Fact]
+        public async Task DeleteComment_WhenServiceThrows_LogsAndRedirects()
+        {
+            // Arrange
+            var confessionId = 1;
+            var commentId = 1;
+            var exception = new Exception("Test exception");
+
+            _serviceMock.Setup(s => s.DeleteCommentAsync(confessionId, commentId))
+                .ThrowsAsync(exception);
+
+            // Act
+            var result = await _controller.DeleteComment(confessionId, commentId);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(ConfessionController.Details), redirectResult.ActionName);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) => true),
+                    exception,
+                    It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
                 Times.Once);
         }
     }
