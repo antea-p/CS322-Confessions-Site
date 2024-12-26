@@ -9,6 +9,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
         Task<Confession?> GetConfessionAsync(int id, bool includeComments = false);
         Task<Confession> CreateConfessionAsync(CreateConfessionViewModel model);
         Task DeleteConfessionAsync(int id);
+        Task AddCommentAsync(int confessionId, CreateCommentViewModel model);
         Task DeleteCommentAsync(int confessionId, int commentId);
         Task IncrementLikesAsync(int id);
         Task DecrementLikesAsync(int id);

@@ -41,19 +41,29 @@
         </div>
     </div>
 
-    <!-- Comments Section -->
     <div class="comments-section">
         <h5>Comments (@Model.Comments.Count)</h5>
 
-        <form asp-action="AddComment" asp-route-id="@Model.Id" method="post" class="mb-4">
+        @if (TempData["CommentErrors"] != null)
+        {
+            <div class="alert alert-danger">
+                @foreach (var error in (List<string>) TempData["CommentErrors"])
+                {
+                    <p>@error</p>
+                }
+            </div>
+        }
+        <form asp-action="AddComment" asp-route-id="@Model.Id" method="post">
             @Html.AntiForgeryToken()
             <div class="form-group mb-3">
-                <label asp-for="NewCommentAuthorNickname">Your Nickname</label>
-                <input asp-for="NewCommentAuthorNickname" class="form-control" required maxlength="50" />
+                <label for="AuthorNickname">Your Nickname</label>
+                <input name="AuthorNickname" class="form-control" />
+                <span asp-validation-for="NewComment.AuthorNickname" class="text-danger"></span>
             </div>
             <div class="form-group mb-3">
-                <label asp-for="NewCommentContent">Your Comment</label>
-                <textarea asp-for="NewCommentContent" class="form-control" rows="3" required maxlength="500"></textarea>
+                <label for="Content">Your Comment</label>
+                <textarea name="Content" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="NewComment.Content" class="text-danger"></span>
             </div>
             <button type="submit" class="btn btn-primary">Post Comment</button>
         </form>
@@ -92,13 +102,3 @@
         }
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        function confirmDelete(id) {
-            if (confirm('Are you sure you want to delete this confession? This action cannot be undone.')) {
-                document.getElementById('deleteForm-' + id).submit();
-            }
-        }
-    </script>
-}

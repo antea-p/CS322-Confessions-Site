@@ -119,6 +119,26 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             }
         }
 
+        public async Task AddCommentAsync(Comment comment)
+        {
+            try
+            {
+                var confession = await _context.Confessions
+                    .FirstOrDefaultAsync(c => c.Id == comment.ConfessionId);
+
+                if (confession == null)
+                    throw new DbUpdateException($"Confession with ID {comment.ConfessionId} not found");
+
+                _context.Comments.Add(comment);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving comment to database");
+                throw;
+            }
+        }
+
         public async Task DeleteCommentAsync(int confessionId, int commentId)
         {
             try

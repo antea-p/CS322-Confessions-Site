@@ -2,6 +2,7 @@
 using CS322_PZ_AnteaPrimorac5157.Repositories;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
 using Ganss.Xss;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
 
@@ -113,6 +114,40 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task AddCommentAsync(int confessionId, CreateCommentViewModel model)
+        {
+            var sanitizedContent = _sanitizer.Sanitize(model.Content);
+            var sanitizedNickname = _sanitizer.Sanitize(model.AuthorNickname);
+
+            if (string.IsNullOrWhiteSpace(sanitizedContent))
+                throw new ValidationException("Comment content cannot be empty or contain only HTML tags.");
+            if (string.IsNullOrWhiteSpace(sanitizedNickname))
+                throw new ValidationException("Author nickname cannot be empty or contain only HTML tags.");
+
+            var comment = new Comment
+            {
+                Content = sanitizedContent,
+                AuthorNickname = sanitizedNickname,
+                ConfessionId = confessionId,
+                DateCreated = DateTime.UtcNow
+            };
+
+            try
+            {
+                await _repository.AddCommentAsync(comment);
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Database error adding comment to confession {Id}", confessionId);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding comment to confession {Id}", confessionId);
                 throw;
             }
         }

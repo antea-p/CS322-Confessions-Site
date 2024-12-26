@@ -369,6 +369,50 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         }
 
         [Fact]
+        public async Task AddCommentAsync_SanitizesInput()
+        {
+            // Arrange
+            var confessionId = 1;
+            var model = new CreateCommentViewModel
+            {
+                Content = "<b>Valid</b><script>alert(1)</script>",
+                AuthorNickname = "<i>Tester</i><img src=x onerror=alert(1)>"
+            };
+
+            _repositoryMock.Setup(r => r.AddCommentAsync(It.IsAny<Comment>()))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _service.AddCommentAsync(confessionId, model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.AddCommentAsync(It.Is<Comment>(c =>
+                c.Content == "<b>Valid</b>" &&
+                c.AuthorNickname == "<i>Tester</i>"
+            )), Times.Once);
+        }
+
+        [Theory]
+        [InlineData("", "")]
+        [InlineData("", "nickname")]
+        [InlineData("content", "")]
+        [InlineData("<script>alert(1)</script>", "nickname")]
+        [InlineData("content", "<script>alert(1)</script>")]
+        public async Task AddCommentAsync_WithInvalidInput_ThrowsValidation(string content, string nickname)
+        {
+            // Arrange
+            var model = new CreateCommentViewModel
+            {
+                Content = content,
+                AuthorNickname = nickname
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<ValidationException>(() =>
+                _service.AddCommentAsync(1, model));
+        }
+
+        [Fact]
         public async Task DeleteCommentAsync_CallsRepository()
         {
             // Arrange

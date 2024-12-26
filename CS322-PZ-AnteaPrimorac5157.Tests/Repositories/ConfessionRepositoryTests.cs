@@ -461,6 +461,59 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
         }
 
         [Fact]
+        public async Task AddCommentAsync_UpdatesConfessionComments()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test",
+                Content = "Test"
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
+
+            var comment = new Comment
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester",
+                ConfessionId = confession.Id
+            };
+
+            // Act
+            await repository.AddCommentAsync(comment);
+
+            // Assert
+            var savedConfession = await context.Confessions
+                .Include(c => c.Comments)
+                .FirstAsync(c => c.Id == confession.Id);
+
+            Assert.Single(savedConfession.Comments);
+            Assert.Equal(comment.Content, savedConfession.Comments.First().Content);
+        }
+
+        [Fact]
+        public async Task AddCommentAsync_WithInvalidConfessionId_Throws()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var comment = new Comment
+            {
+                Content = "Test",
+                AuthorNickname = "Tester",
+                ConfessionId = 9999
+            };
+
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateException>(() =>
+                repository.AddCommentAsync(comment));
+        }
+
+        [Fact]
         public async Task DeleteCommentAsync_WithValidIds_DeletesComment()
         {
             // Arrange

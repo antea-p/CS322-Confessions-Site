@@ -10,8 +10,6 @@
         public bool UserHasLiked { get; set; }
         public ICollection<CommentViewModel> Comments { get; set; } = new List<CommentViewModel>();
 
-
-        public string NewCommentContent { get; set; } = string.Empty;
-        public string NewCommentAuthorNickname { get; set; } = string.Empty;
+        public CreateCommentViewModel NewComment { get; set; } = new();
     }
 }

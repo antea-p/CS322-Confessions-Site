@@ -14,6 +14,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
 
 namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
 {
@@ -538,6 +539,81 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
+
+        [Fact]
+        public async Task AddComment_WithValidData_AddsCommentAndRedirects()
+        {
+            // Arrange
+            var confessionId = 1;
+            var model = new CreateCommentViewModel
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester"
+            };
+
+            _serviceMock.Setup(s => s.AddCommentAsync(confessionId, model))
+                .Returns(Task.CompletedTask);
+
+            // Act
+            var result = await _controller.AddComment(confessionId, model);
+
+            // Assert
+            _serviceMock.Verify(s => s.AddCommentAsync(confessionId, model), Times.Once);
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(Details), redirectResult.ActionName);
+            Assert.NotNull(redirectResult.RouteValues);
+            Assert.True(redirectResult.RouteValues.ContainsKey("id"));
+            Assert.Equal(confessionId, (int)redirectResult.RouteValues["id"]!);
+        }
+
+        [Fact]
+        public async Task AddComment_WithInvalidModel_ReturnsToDetailsWithError()
+        {
+            // Arrange
+            var confessionId = 1;
+            var model = new CreateCommentViewModel();
+            _controller.ModelState.AddModelError("Content", "Required");
+
+            // Act
+            var result = await _controller.AddComment(confessionId, model);
+
+            // Assert
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(Details), redirectResult.ActionName);
+            _serviceMock.Verify(s => s.AddCommentAsync(It.IsAny<int>(), It.IsAny<CreateCommentViewModel>()), Times.Never);
+        }
+
+        [Fact]
+        public async Task AddComment_WhenExceptionOccurs_LogsAndRedirectsToDetails()
+        {
+            // Arrange
+            var confessionId = 1;
+            var model = new CreateCommentViewModel
+            {
+                Content = "Test",
+                AuthorNickname = "Tester"
+            };
+            var exception = new Exception("Test error");
+
+            _serviceMock.Setup(s => s.AddCommentAsync(confessionId, model))
+                .ThrowsAsync(exception);
+
+            // Act
+            var result = await _controller.AddComment(confessionId, model);
+
+            // Assert
+            _loggerMock.Verify(l => l.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                exception,
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()
+            ), Times.Once);
+
+            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
+            Assert.Equal(nameof(Details), redirectResult.ActionName);
+        }
+
 
         [Fact]
         public async Task DeleteComment_WhenUserAuthenticated_DeletesAndRedirects()

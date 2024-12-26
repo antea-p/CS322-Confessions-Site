@@ -21,6 +21,9 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             _logger = logger;
         }
 
+        private IActionResult RedirectToDetailsAction(int id) =>
+            RedirectToAction(nameof(Details), new { id });
+
         // GET: /Confession
         public async Task<IActionResult> Index(bool sortByLikes = false)
         {
@@ -78,7 +81,8 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                         Content = c.Content,
                         AuthorNickname = c.AuthorNickname,
                         DateCreated = c.DateCreated
-                    }).ToList()
+                    }).ToList(),
+                    NewComment = TempData["CommentModel"] as CreateCommentViewModel ?? new()
                 };
 
                 return View(viewModel);
@@ -179,6 +183,32 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             {
                 _logger.LogError(ex, "Error occurred while deleting confession with ID: {Id}", id);
                 return StatusCode(500, "An error occurred while deleting the confession.");
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddComment(int id, CreateCommentViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return PartialView("_CommentSection", model);
+            }
+
+            try
+            {
+                await _confessionService.AddCommentAsync(id, model);
+                return RedirectToDetailsAction(id);
+            }
+            catch (ValidationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                return PartialView("_CommentSection", model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while adding comment to confession {ConfessionId}", id);
+                return PartialView("_CommentSection", model);
             }
         }
 
