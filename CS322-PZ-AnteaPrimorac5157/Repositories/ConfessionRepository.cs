@@ -201,6 +201,26 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             }
         }
 
+        public async Task<IEnumerable<Confession>> SearchConfessionsAsync(string searchTerm)
+        {
+
+            try
+            {
+                // Pretraga nije osjetljiva na mala i velika slova
+                return await _context.Confessions
+                    .Where(c =>
+                        EF.Functions.Like(c.Title, $"%{searchTerm}%") ||
+                        EF.Functions.Like(c.Content, $"%{searchTerm}%"))
+                    .OrderByDescending(c => c.DateCreated)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while searching confessions");
+                throw;
+            }
+        }
+
         public async Task IncrementLikesAsync(int id)
         {
             try

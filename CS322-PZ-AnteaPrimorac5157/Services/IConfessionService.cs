@@ -7,6 +7,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
     {
         Task<IEnumerable<Confession>> GetConfessionsAsync(bool orderByLikes = false);
         Task<Confession?> GetConfessionAsync(int id, bool includeComments = false);
+        Task<IEnumerable<Confession>> SearchConfessionsAsync(string searchTerm);
         Task<Confession> CreateConfessionAsync(CreateConfessionViewModel model);
         Task DeleteConfessionAsync(int id);
         Task AddCommentAsync(int confessionId, CreateCommentViewModel model);

@@ -4,9 +4,24 @@
 @{
     ViewData["Title"] = "Home Page";
     var currentSort = ViewData["CurrentSort"] as bool? ?? false;
+    var searchTerm = ViewData["SearchTerm"] as string;
 }
 
 <div class="container">
+    <form asp-action="Search" method="get" class="mb-4">
+        <div class="input-group">
+            <input type="search" name="searchTerm"
+                    class="form-control"
+                    placeholder="Search confessions..."
+                    value="@searchTerm"
+                    required
+                    minlength="1">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-search"></i> Search
+            </button>
+        </div>
+    </form>
+
     <div class="d-flex justify-content-between align-items-center mb-4">
         @if (User?.Identity?.IsAuthenticated != true)
         {

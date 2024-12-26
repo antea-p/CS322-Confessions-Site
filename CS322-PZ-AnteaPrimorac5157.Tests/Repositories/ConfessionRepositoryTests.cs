@@ -188,6 +188,54 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
         }
 
         [Fact]
+        public async Task SearchConfessionsAsync_WithMatchingTitle_ReturnsConfessions()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confessions = new List<Confession>
+            {
+                new Confession { Title = "Test Confession", Content = "Some content" },
+                new Confession { Title = "Another post", Content = "Different content" }
+            };
+
+            await context.Confessions.AddRangeAsync(confessions);
+            await context.SaveChangesAsync();
+
+            // Act
+            var result = await repository.SearchConfessionsAsync("Test");
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("Test Confession", result.First().Title);
+        }
+
+        [Fact]
+        public async Task SearchConfessionsAsync_WithMatchingContent_ReturnsConfessions()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
+
+            var confessions = new List<Confession>
+            {
+                new Confession { Title = "Test Confession", Content = "Some content" },
+                new Confession { Title = "Another post", Content = "Different content" }
+            };
+
+            await context.Confessions.AddRangeAsync(confessions);
+            await context.SaveChangesAsync();
+
+            // Act
+            var result = await repository.SearchConfessionsAsync("Different");
+
+            // Assert
+            Assert.Single(result);
+            Assert.Equal("Different content", result.First().Content);
+        }
+
+        [Fact]
         public async Task AddAsync_AddsConfessionToDatabase()
         {
             // Arrange

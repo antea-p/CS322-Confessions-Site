@@ -57,6 +57,24 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             }
         }
 
+        public async Task<IEnumerable<Confession>> SearchConfessionsAsync(string searchTerm)
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                throw new ArgumentException("Search term cannot be empty.");
+            }
+
+            try
+            {
+                return await _repository.SearchConfessionsAsync(searchTerm);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in service while searching confessions");
+                throw;
+            }
+        }
+
         public async Task<Confession> CreateConfessionAsync(CreateConfessionViewModel model)
         {
             try

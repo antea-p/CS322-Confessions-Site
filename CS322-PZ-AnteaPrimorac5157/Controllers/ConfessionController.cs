@@ -78,6 +78,37 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             }
         }
 
+        public async Task<IActionResult> Search(string searchTerm)
+        {
+            try
+            {
+                var searchResults = await _confessionService.SearchConfessionsAsync(searchTerm);
+
+                ViewData["SearchTerm"] = searchTerm;
+                ViewData["Message"] = searchResults.Any()
+                    ? null
+                    : $"No confessions found matching '{searchTerm}'";
+
+                var viewModels = searchResults.Select(c => new ConfessionListViewModel
+                {
+                    Id = c.Id,
+                    Title = c.Title,
+                    Content = c.Content,
+                    DateCreated = c.DateCreated,
+                    Likes = c.Likes,
+                    CommentCount = c.Comments?.Count ?? 0
+                }).ToList();
+
+                return View(nameof(Index), viewModels);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while searching confessions");
+                ViewData["Message"] = "An error occurred while searching confessions.";
+                return View(nameof(Index), new List<ConfessionListViewModel>());
+            }
+        }
+
         // GET: /Confession/Details/5
         public async Task<IActionResult> Details(int id)
         {
