@@ -24,6 +24,30 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         private IActionResult RedirectToDetailsAction(int id) =>
             RedirectToAction(nameof(Details), new { id });
 
+        private async Task<ConfessionDetailsViewModel?> GetConfessionDetailsViewModel(int id, CreateCommentViewModel? commentModel = null)
+        {
+            var confession = await _confessionService.GetConfessionAsync(id, includeComments: true);
+            if (confession == null) return null;
+
+            return new ConfessionDetailsViewModel
+            {
+                Id = confession.Id,
+                Title = confession.Title,
+                Content = confession.Content,
+                DateCreated = confession.DateCreated,
+                Likes = confession.Likes,
+                UserHasLiked = HttpContext.Session.HasLiked(id),
+                Comments = confession.Comments.Select(c => new CommentViewModel
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    AuthorNickname = c.AuthorNickname,
+                    DateCreated = c.DateCreated
+                }).ToList(),
+                NewComment = commentModel ?? new CreateCommentViewModel { ConfessionId = id }
+            };
+        }
+
         // GET: /Confession
         public async Task<IActionResult> Index(bool sortByLikes = false)
         {
@@ -57,41 +81,9 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         // GET: /Confession/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            try
-            {
-                var confession = await _confessionService.GetConfessionAsync(id, includeComments: true);
-                if (confession == null)
-                {
-                    return NotFound();
-                }
-
-                bool userHasLiked = HttpContext.Session.HasLiked(id);
-
-                var viewModel = new ConfessionDetailsViewModel
-                {
-                    Id = confession.Id,
-                    Title = confession.Title,
-                    Content = confession.Content,
-                    DateCreated = confession.DateCreated,
-                    Likes = confession.Likes,
-                    UserHasLiked = userHasLiked,
-                    Comments = confession.Comments.Select(c => new CommentViewModel
-                    {
-                        Id = c.Id,
-                        Content = c.Content,
-                        AuthorNickname = c.AuthorNickname,
-                        DateCreated = c.DateCreated
-                    }).ToList(),
-                    NewComment = TempData["CommentModel"] as CreateCommentViewModel ?? new()
-                };
-
-                return View(viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while getting confession details for ID: {Id}", id);
-                return RedirectToAction(nameof(Index));
-            }
+            var viewModel = await GetConfessionDetailsViewModel(id);
+            if (viewModel == null) return NotFound();
+            return View(viewModel);
         }
 
         // POST: /Confession/ToggleLike/5
@@ -192,25 +184,24 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return PartialView("_CommentSection", model);
+                ViewBag.ConfessionId = id;
+                var viewModel = await GetConfessionDetailsViewModel(id, model);
+                if (viewModel == null) return NotFound();
+                return View("Details", viewModel);
             }
 
             try
             {
                 await _confessionService.AddCommentAsync(id, model);
-                return RedirectToDetailsAction(id);
-            }
-            catch (ValidationException ex)
-            {
-                ModelState.AddModelError("", ex.Message);
-                return PartialView("_CommentSection", model);
+                return RedirectToAction(nameof(Details), new { id });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while adding comment to confession {ConfessionId}", id);
-                return PartialView("_CommentSection", model);
-            }
+                return RedirectToAction(nameof(Details), new { id });
+            };
         }
+    
 
         [HttpPost]
         [Authorize]

@@ -4,6 +4,8 @@ namespace CS322_PZ_AnteaPrimorac5157.ViewModels
 {
     public class CreateCommentViewModel
     {
+        public int ConfessionId { get; set; }
+
         [Required(ErrorMessage = "Content is required")]
         [StringLength(512, ErrorMessage = "Content cannot be longer than 512 characters")]
         public string Content { get; set; } = string.Empty;

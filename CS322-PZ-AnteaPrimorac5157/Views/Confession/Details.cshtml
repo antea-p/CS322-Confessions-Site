@@ -44,30 +44,9 @@
     <div class="comments-section">
         <h5>Comments (@Model.Comments.Count)</h5>
 
-        @if (TempData["CommentErrors"] != null)
-        {
-            <div class="alert alert-danger">
-                @foreach (var error in (List<string>) TempData["CommentErrors"])
-                {
-                    <p>@error</p>
-                }
-            </div>
-        }
-        <form asp-action="AddComment" asp-route-id="@Model.Id" method="post">
-            @Html.AntiForgeryToken()
-            <div class="form-group mb-3">
-                <label for="AuthorNickname">Your Nickname</label>
-                <input name="AuthorNickname" class="form-control" />
-                <span asp-validation-for="NewComment.AuthorNickname" class="text-danger"></span>
-            </div>
-            <div class="form-group mb-3">
-                <label for="Content">Your Comment</label>
-                <textarea name="Content" class="form-control" rows="3"></textarea>
-                <span asp-validation-for="NewComment.Content" class="text-danger"></span>
-            </div>
-            <button type="submit" class="btn btn-primary">Post Comment</button>
-        </form>
-
+        <div id="commentFormContainer">
+            @await Html.PartialAsync("_CommentForm", new CreateCommentViewModel { ConfessionId = Model.Id })
+        </div>
         @foreach (var comment in Model.Comments.OrderByDescending(c => c.DateCreated))
         {
             <div class="card mb-2">

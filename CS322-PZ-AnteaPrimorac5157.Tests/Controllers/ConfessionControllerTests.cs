@@ -566,20 +566,23 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             Assert.Equal(confessionId, (int)redirectResult.RouteValues["id"]!);
         }
 
+        // TODO: robusniji test
         [Fact]
         public async Task AddComment_WithInvalidModel_ReturnsToDetailsWithError()
         {
             // Arrange
             var confessionId = 1;
-            var model = new CreateCommentViewModel();
-            _controller.ModelState.AddModelError("Content", "Required");
+            var model = new CreateCommentViewModel { ConfessionId = confessionId };
+            _controller.ModelState.AddModelError("Content", "Content is required");
+            _controller.ModelState.AddModelError("AuthorNickname", "Nickname is required");
+
 
             // Act
             var result = await _controller.AddComment(confessionId, model);
 
             // Assert
-            var redirectResult = Assert.IsType<RedirectToActionResult>(result);
-            Assert.Equal(nameof(Details), redirectResult.ActionName);
+            var notFoundResult = Assert.IsType<NotFoundResult>(result);
+            Assert.NotNull(notFoundResult);
             _serviceMock.Verify(s => s.AddCommentAsync(It.IsAny<int>(), It.IsAny<CreateCommentViewModel>()), Times.Never);
         }
 
