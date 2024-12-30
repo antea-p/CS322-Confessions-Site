@@ -119,6 +119,20 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             }
         }
 
+        public async Task<Comment?> GetCommentAsync(int commentId)
+        {
+            try
+            {
+                return await _context.Comments
+                    .FirstOrDefaultAsync(c => c.Id == commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting comment {CommentId}", commentId);
+                throw;
+            }
+        }
+
         public async Task AddCommentAsync(Comment comment)
         {
             try
@@ -135,6 +149,25 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error saving comment to database");
+                throw;
+            }
+        }
+
+        public async Task UpdateCommentAsync(Comment comment)
+        {
+            try
+            {
+                var entry = _context.Entry(comment);
+                if (entry.State == EntityState.Detached)
+                {
+                    _context.Comments.Attach(comment);
+                }
+                entry.State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating comment {CommentId}", comment.Id);
                 throw;
             }
         }

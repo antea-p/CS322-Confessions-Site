@@ -2,82 +2,144 @@
 @model ConfessionDetailsViewModel
 
 @{
-    ViewData["Title"] = Model.Title;
+	ViewData["Title"] = Model.Title;
 }
 
 <div class="container">
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>#@Model.Id</span>
-            @if (User?.Identity?.IsAuthenticated == true)
-            {
-                <div>
-                    <button onclick="confirmDelete(@Model.Id)"
-                            class="btn btn-sm btn-danger">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                    <form id="deleteForm-@Model.Id"
-                          asp-action="Delete" asp-route-id="@Model.Id"
-                          method="post" style="display: none;">
-                        @Html.AntiForgeryToken()
-                    </form>
-                </div>
-            }
-        </div>
-        <div class="card-body">
-            <h4 class="card-title">@Model.Title</h4>
-            <p class="card-text">@Html.Raw(Model.Content)</p>
+	<div class="card mb-4">
+		<div class="card-header d-flex justify-content-between align-items-center">
+			<span>#@Model.Id</span>
+			@if (User?.Identity?.IsAuthenticated == true)
+			{
+				<div>
+					<button onclick="confirmDelete(@Model.Id)"
+							class="btn btn-sm btn-danger">
+						<i class="fas fa-trash"></i> Delete
+					</button>
+					<form id="deleteForm-@Model.Id"
+						  asp-action="Delete" asp-route-id="@Model.Id"
+						  method="post" style="display: none;">
+						@Html.AntiForgeryToken()
+					</form>
+				</div>
+			}
+		</div>
+		<div class="card-body">
+			<h4 class="card-title">@Model.Title</h4>
+			<p class="card-text">@Html.Raw(Model.Content)</p>
 
-            <div class="confession-stats">
-                <span>@Model.DateCreated.ToString("dd MMM yyyy HH:mm")</span>
-                <form asp-action="ToggleLike" asp-route-id="@Model.Id"
-                      method="post" class="d-inline ms-3">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm @(Model.UserHasLiked ? "btn-secondary" : "btn-outline-secondary")">
-                        <i class="fas fa-thumbs-up"></i> @Model.Likes
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
+			<div class="confession-stats">
+				<span>@Model.DateCreated.ToString("dd MMM yyyy HH:mm")</span>
+				<form asp-action="ToggleLike" asp-route-id="@Model.Id"
+					  method="post" class="d-inline ms-3">
+					@Html.AntiForgeryToken()
+					<button type="submit" class="btn btn-sm @(Model.UserHasLiked ? "btn-secondary" : "btn-outline-secondary")">
+						<i class="fas fa-thumbs-up"></i> @Model.Likes
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
 
-    <div class="comments-section">
-        <h5>Comments (@Model.Comments.Count)</h5>
+	<div class="comments-section">
+		<h5>Comments (@Model.Comments.Count)</h5>
 
-        <div id="commentFormContainer">
-            @await Html.PartialAsync("_CommentForm", new CreateCommentViewModel { ConfessionId = Model.Id })
-        </div>
-        @foreach (var comment in Model.Comments.OrderByDescending(c => c.DateCreated))
-        {
-            <div class="card mb-2">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between">
-                        <h6 class="card-subtitle mb-2 text-muted">@comment.AuthorNickname</h6>
-                        @if (User?.Identity?.IsAuthenticated == true)
-                        {
-                            <form asp-action="DeleteComment"
-                                  asp-route-confessionId="@Model.Id"
-                                  asp-route-commentId="@comment.Id"
-                                  method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button onclick="confirmDeleteComment(@Model.Id, @comment.Id)"
-                                        class="btn btn-sm btn-danger">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                                <form id="deleteCommentForm-@Model.Id-@comment.Id"
-                                      asp-action="DeleteComment"
-                                      asp-route-confessionId="@Model.Id"
-                                      asp-route-commentId="@comment.Id"
-                                      method="post" style="display: none;">
-                                    @Html.AntiForgeryToken()
-                                </form>
-                            </form>
-                        }
-                    </div>
-                    <p class="card-text">@comment.Content</p>
-                    <small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
-                </div>
-            </div>
-        }
-    </div>
-</div>
+		<div id="commentFormContainer">
+			@await Html.PartialAsync("_CommentForm", new CreateCommentViewModel { ConfessionId = Model.Id })
+		</div>
+		@foreach (var comment in Model.Comments.OrderByDescending(c => c.DateCreated))
+		{
+			<div class="card mb-2">
+				<div class="card-body" id="comment-@comment.Id">
+					<div class="d-flex justify-content-between">
+						<h6 class="card-subtitle mb-2 text-muted" data-author-id="@comment.Id">@comment.AuthorNickname</h6>
+						@if (User?.Identity?.IsAuthenticated == true)
+						{
+							<div>
+								<button onclick="toggleEditMode(@comment.Id)"
+										class="btn btn-sm btn-secondary edit-btn-@comment.Id">
+									<i class="fas fa-edit"></i> Edit
+								</button>
+								<button onclick="saveComment(@comment.Id)"
+										class="btn btn-sm btn-primary save-btn-@comment.Id"
+										style="display: none;">
+									<i class="fas fa-save"></i> Save
+								</button>
+								<button onclick="cancelEdit(@comment.Id)"
+										class="btn btn-sm btn-secondary cancel-btn-@comment.Id"
+										style="display: none;">
+									<i class="fas fa-times"></i> Cancel
+								</button>
+								<form asp-action="DeleteComment"
+									  asp-route-confessionId="@Model.Id"
+									  asp-route-commentId="@comment.Id"
+									  method="post" class="d-inline">
+									@Html.AntiForgeryToken()
+									<button type="submit" class="btn btn-sm btn-danger">
+										<i class="fas fa-trash"></i> Delete
+									</button>
+								</form>
+							</div>
+						}
+					</div>
+					<p class="card-text content-display-@comment.Id">@Html.Raw(comment.Content)</p>
+					<div class="content-edit-@comment.Id" style="display: none;">
+						<textarea class="form-control mb-2">@comment.Content</textarea>
+						<input type="text" class="form-control mb-2" value="@comment.AuthorNickname" placeholder="Author Nickname" />
+					</div>
+					<small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
+				</div>
+			</div>
+		}
+	</div>
+
+	@section Scripts {
+		<script>
+			function toggleEditMode(commentId) {
+				$(`.content-display-${commentId}`).hide();
+				$(`.content-edit-${commentId}`).show();
+				$(`.edit-btn-${commentId}`).hide();
+				$(`.save-btn-${commentId}, .cancel-btn-${commentId}`).show();
+			}
+
+			function cancelEdit(commentId) {
+				$(`.content-display-${commentId}`).show();
+				$(`.content-edit-${commentId}`).hide();
+				$(`.edit-btn-${commentId}`).show();
+				$(`.save-btn-${commentId}, .cancel-btn-${commentId}`).hide();
+			}
+
+			function saveComment(commentId) {
+				const content = $(`.content-edit-${commentId} textarea`).val();
+				const authorNickname = $(`.content-edit-${commentId} input`).val();
+
+				const token = $('input[name="__RequestVerificationToken"]').first().val();
+
+				$.ajax({
+					url: '@Url.Action("EditComment", "Confession")',
+					type: 'POST',
+					contentType: 'application/x-www-form-urlencoded',
+					data: {
+						Id: commentId,
+						ConfessionId: @Model.Id,
+						Content: content,
+						AuthorNickname: authorNickname,
+						__RequestVerificationToken: token
+					},
+					success: function (response) {
+						if (response.success) {
+							$(`.content-display-${commentId}`).html(response.content);
+							$(`#comment-${commentId} .card-subtitle`).text(response.authorNickname);
+							cancelEdit(commentId);
+						} else {
+							alert('Error updating comment: ' + response.message);
+						}
+					},
+					error: function (xhr, status, error) {
+						console.error('Error details:', xhr.responseText);
+						alert('Error updating comment: ' + error);
+					}
+				});
+			}
+		</script>
+	}

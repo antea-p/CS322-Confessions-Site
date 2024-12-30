@@ -14,7 +14,7 @@
         public async Task InvokeAsync(HttpContext context)
         {
             var path = context.Request.Path;
-            _logger.LogWarning($"Middleware intercepted path: {path}");
+            // _logger.LogWarning($"Middleware intercepted path: {path}");
 
             if (path.StartsWithSegments("/Identity/Account", out var remaining))
             {

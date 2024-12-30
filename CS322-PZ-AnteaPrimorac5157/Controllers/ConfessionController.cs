@@ -232,9 +232,65 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             };
         }
-    
 
-        [HttpPost]
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> EditComment(int confessionId, int commentId)
+        {
+            var comment = await _confessionService.GetCommentAsync(commentId);
+            if (comment == null || comment.ConfessionId != confessionId)
+                return NotFound();
+
+            var viewModel = new EditCommentViewModel
+            {
+                Id = comment.Id,
+                ConfessionId = comment.ConfessionId,
+                Content = comment.Content,
+                AuthorNickname = comment.AuthorNickname
+            };
+
+            return View(viewModel);
+        }
+
+		[HttpPost]
+		[Authorize]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> EditComment(EditCommentViewModel model)
+		{
+			if (!User.Identity?.IsAuthenticated ?? true)
+			{
+				return Forbid();
+			}
+
+			if (!ModelState.IsValid)
+			{
+				return Json(new { success = false, message = "Invalid data" });
+			}
+
+			try
+			{
+				await _confessionService.UpdateCommentAsync(model);
+
+				return Json(new
+				{
+					success = true,
+					content = model.Content,
+					authorNickname = model.AuthorNickname
+				});
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError(ex, "Error updating comment {CommentId}", model.Id);
+				return Json(new
+				{
+					success = false,
+					message = "An error occurred while updating the comment"
+				});
+			}
+		}
+
+		[HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteComment(int confessionId, int commentId)

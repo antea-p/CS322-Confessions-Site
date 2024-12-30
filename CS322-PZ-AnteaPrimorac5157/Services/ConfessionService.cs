@@ -136,6 +136,19 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             }
         }
 
+        public async Task<Comment?> GetCommentAsync(int commentId)
+        {
+            try
+            {
+                return await _repository.GetCommentAsync(commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while getting comment with ID: {Id}", commentId);
+                throw;
+            }
+        }
+
         public async Task AddCommentAsync(int confessionId, CreateCommentViewModel model)
         {
             var sanitizedContent = _sanitizer.Sanitize(model.Content);
@@ -166,6 +179,34 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding comment to confession {Id}", confessionId);
+                throw;
+            }
+        }
+
+        public async Task UpdateCommentAsync(EditCommentViewModel model)
+        {
+            try
+            {
+                var comment = await GetCommentAsync(model.Id);
+                if (comment == null)
+                    throw new InvalidOperationException($"Comment with ID {model.Id} not found");
+
+                var sanitizedContent = _sanitizer.Sanitize(model.Content);
+                var sanitizedNickname = _sanitizer.Sanitize(model.AuthorNickname);
+
+                if (string.IsNullOrWhiteSpace(sanitizedContent))
+                    throw new ValidationException("Comment content cannot be empty");
+                if (string.IsNullOrWhiteSpace(sanitizedNickname))
+                    throw new ValidationException("Author nickname cannot be empty");
+
+                comment.Content = sanitizedContent;
+                comment.AuthorNickname = sanitizedNickname;
+
+                await _repository.UpdateCommentAsync(comment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating comment {CommentId}", model.Id);
                 throw;
             }
         }
