@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using CS322_PZ_AnteaPrimorac5157.Repositories;
 using CS322_PZ_AnteaPrimorac5157.Services;
 using Microsoft.Extensions.Logging;
+using CS322_PZ_AnteaPrimorac5157.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -126,7 +127,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseIdentityPagesRestriction();
 app.UseAuthorization();
 
 app.MapControllerRoute(
