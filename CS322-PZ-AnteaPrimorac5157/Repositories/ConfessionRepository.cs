@@ -90,6 +90,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
         {
             try
             {
+                // Ponovno dohvati tu ispovijest kako bismo bili sigurni da imamo najnoviju verziju
                 var existingConfession = await _context.Confessions.FindAsync(confession.Id);
                 if (existingConfession == null)
                     throw new DbUpdateConcurrencyException();
@@ -107,9 +108,13 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
         public async Task DeleteAsync(Confession confession)
         {
             try
-            {
-                _context.Confessions.Remove(confession);
-                await _context.SaveChangesAsync();
+            { 
+                var entity = await _context.Confessions.FindAsync(confession.Id);
+                if (entity != null)
+                {
+                    _context.Confessions.Remove(entity);
+                    await _context.SaveChangesAsync();
+                }
             }
             catch (Exception ex)
             {
