@@ -15,6 +15,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.Blazor;
+using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
 {
@@ -29,6 +32,22 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             _serviceMock = new Mock<IConfessionService>();
             _loggerMock = new Mock<ILogger<ConfessionController>>();
             _controller = new ConfessionController(_serviceMock.Object, _loggerMock.Object);
+        }
+
+        // Podesi autoriziranog korisnika
+        private void SetupAuthorizedUser()
+        {
+            var claims = new List<Claim> { new Claim(ClaimTypes.Name, "test@test.com") };
+            var identity = new ClaimsIdentity(claims, "Test");
+            var principal = new ClaimsPrincipal(identity);
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = principal
+                }
+            };
         }
 
         [Fact]
@@ -462,6 +481,58 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
         }
 
         [Fact]
+        public async Task Edit_GET_WithValidId_ReturnsView()
+        {
+            // Arrange
+            var confessionId = 1;
+            var confession = new Confession { Id = confessionId, Title = "Test", Content = "Content" };
+            _serviceMock.Setup(s => s.GetConfessionAsync(confessionId, false))
+                .ReturnsAsync(confession);
+
+            // Act
+            var result = await _controller.Edit(confessionId) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            var model = Assert.IsType<EditConfessionViewModel>(result.Model);
+            Assert.Equal(confession.Title, model.Title);
+        }
+
+        [Fact]
+        public async Task Edit_GET_WithInvalidId_ReturnsNotFound()
+        {
+            // Arrange
+            const int nonExistentId = 9999;
+            _serviceMock.Setup(s => s.GetConfessionAsync(nonExistentId, false))
+                .ReturnsAsync((Confession?)null);
+
+            // Act
+            var result = await _controller.Edit(nonExistentId);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
+        [Fact]
+        public async Task Edit_POST_WithConcurrencyConflict_ReturnsViewWithError()
+        {
+            // Arrange
+            var model = new EditConfessionViewModel { Id = 1 };
+            _serviceMock.Setup(s => s.UpdateConfessionAsync(model))
+                .ThrowsAsync(new DbUpdateConcurrencyException());
+
+            // Act
+            var result = await _controller.Edit(model) as ViewResult;
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Contains(
+                result.ViewData.ModelState.Values,
+                v => v.Errors.Any(e => e.ErrorMessage.Contains("Another admin has modified"))
+            );
+        }
+
+        [Fact]
         public async Task Delete_WithValidId_RedirectsToIndex()
         {
             // Arrange
@@ -617,6 +688,159 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             Assert.Equal(nameof(Details), redirectResult.ActionName);
         }
 
+        // TODO
+        [Fact]
+        public async Task EditComment_Success_ReturnsJsonResult()
+        {
+            // Arrange
+            var model = new EditCommentViewModel
+            {
+                Id = 1,
+                ConfessionId = 1,
+                Content = "Updated content",
+                AuthorNickname = "Updated author"
+            };
+
+            _serviceMock.Setup(s => s.UpdateCommentAsync(It.IsAny<EditCommentViewModel>()))
+                .Returns(Task.CompletedTask);
+
+            SetupAuthorizedUser();
+
+            // Act
+            var result = await _controller.EditComment(model);
+
+            // Assert
+            var jsonResult = Assert.IsType<JsonResult>(result);
+            Assert.NotNull(jsonResult.Value);
+
+            var json = System.Text.Json.JsonSerializer.Serialize(jsonResult.Value);
+            var deserialized = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+
+            Assert.True(deserialized["success"].GetBoolean());
+            Assert.Equal(model.Content, deserialized["content"].GetString());
+            Assert.Equal(model.AuthorNickname, deserialized["authorNickname"].GetString());
+        }
+
+        // TODO: popraviti
+        [Fact]
+        public async Task EditComment_WithInvalidModel_ReturnsErrorJson()
+        {
+            // Arrange
+            var model = new EditCommentViewModel
+            {
+                Id = 1,
+                ConfessionId = 1
+            };
+
+            SetupAuthorizedUser();
+
+            // Eksplicitna validacija modela
+            var validationContext = new ValidationContext(model);
+            var validationResults = new List<ValidationResult>();
+            var isValid = Validator.TryValidateObject(model, validationContext, validationResults, true);
+
+            // Dodavanje greški validacije u ModelState
+            foreach (var validationResult in validationResults)
+            {
+                if (validationResult.ErrorMessage != null && validationResult.MemberNames.Any())
+                {
+                    _controller.ModelState.AddModelError(
+                        validationResult.MemberNames.First(),
+                        validationResult.ErrorMessage);
+                }
+            }
+
+            // Act
+            var result = await _controller.EditComment(model);
+
+            // Assert
+            var jsonResult = Assert.IsType<JsonResult>(result);
+            Assert.NotNull(jsonResult.Value);
+
+            var json = System.Text.Json.JsonSerializer.Serialize(jsonResult.Value);
+            var deserialized = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+
+            Assert.NotNull(deserialized);
+            if (deserialized.TryGetValue("success", out JsonElement successElement))
+            {
+                Assert.False(successElement.GetBoolean());
+            }
+            else
+            {
+                Assert.Fail("success property not found in response");
+            }
+
+            if (deserialized.TryGetValue("message", out JsonElement messageElement))
+            {
+                Assert.Equal("Invalid data", messageElement.GetString());
+            }
+            else
+            {
+                Assert.Fail("message property not found in response");
+            }
+        }
+
+        [Fact]
+        public async Task EditComment_WhenServiceThrows_ReturnsErrorJson()
+        {
+            // Arrange
+            var model = new EditCommentViewModel
+            {
+                Id = 1,
+                Content = "Test",
+                AuthorNickname = "Test"
+            };
+            var exception = new Exception("Test error");
+
+            _serviceMock.Setup(s => s.UpdateCommentAsync(model))
+                .ThrowsAsync(exception);
+
+            SetupAuthorizedUser();
+
+            // Act
+            var result = await _controller.EditComment(model);
+
+            // Assert
+            var jsonResult = Assert.IsType<JsonResult>(result);
+            Assert.NotNull(jsonResult.Value);
+
+            var json = JsonSerializer.Serialize(jsonResult.Value);
+            var deserialized = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
+
+            Assert.False(deserialized["success"].GetBoolean());
+            Assert.Equal("An error occurred while updating the comment", deserialized["message"].GetString());
+
+            _loggerMock.Verify(x => x.Log(
+                LogLevel.Error,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, t) => true),
+                exception,
+                It.Is<Func<It.IsAnyType, Exception?, string>>((v, t) => true)),
+            Times.Once);
+        }
+
+        [Fact]
+        public async Task EditComment_UnauthorizedUser_ReturnsForbidden()
+        {
+            // Arrange
+            var model = new EditCommentViewModel();
+
+            // Podesi neautoriziranog korisnika (tj. gosta u ovoj aplikaciji)
+            var principal = new ClaimsPrincipal(new ClaimsIdentity());
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = principal
+                }
+            };
+
+            // Act
+            var result = await _controller.EditComment(model);
+
+            // Assert
+            Assert.IsType<ForbidResult>(result);
+        }
 
         [Fact]
         public async Task DeleteComment_WhenUserAuthenticated_DeletesAndRedirects()

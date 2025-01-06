@@ -22,6 +22,10 @@ namespace CS322_PZ_AnteaPrimorac5157.Data
 				.HasOne(c => c.Confession)
 				.WithMany(c => c.Comments)
 				.HasForeignKey(c => c.ConfessionId);
+
+			modelBuilder.Entity<Confession>()
+				.Property(c => c.RowVersion)
+				.IsRowVersion();
 		}
 	}
 }

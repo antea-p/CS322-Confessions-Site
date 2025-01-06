@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.ComponentModel.DataAnnotations;
 using CS322_PZ_AnteaPrimorac5157.Extensions;
+using Microsoft.EntityFrameworkCore;
 
 namespace CS322_PZ_AnteaPrimorac5157.Controllers
 {
@@ -182,6 +183,44 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             }
         }
 
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var confession = await _confessionService.GetConfessionAsync(id);
+            if (confession == null) return NotFound();
+
+            var viewModel = new EditConfessionViewModel
+            {
+                Id = confession.Id,
+                Title = confession.Title,
+                Content = confession.Content,
+                RowVersion = confession.RowVersion
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(EditConfessionViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            try
+            {
+                await _confessionService.UpdateConfessionAsync(model);
+                return RedirectToAction(nameof(Details), new { id = model.Id });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                ModelState.AddModelError("", "Another admin has modified this confession. Please reload and try again.");
+                return View(model);
+            }
+        }
+
         // POST: /Confession/Delete/5
         [HttpPost]
         [Authorize]
@@ -253,44 +292,44 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             return View(viewModel);
         }
 
-		[HttpPost]
-		[Authorize]
-		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> EditComment(EditCommentViewModel model)
-		{
-			if (!User.Identity?.IsAuthenticated ?? true)
-			{
-				return Forbid();
-			}
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditComment(EditCommentViewModel model)
+        {
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                return Forbid();
+            }
 
-			if (!ModelState.IsValid)
-			{
-				return Json(new { success = false, message = "Invalid data" });
-			}
+            if (!ModelState.IsValid)
+            {
+                return Json(new { success = false, message = "Invalid data" });
+            }
 
-			try
-			{
-				await _confessionService.UpdateCommentAsync(model);
+            try
+            {
+                await _confessionService.UpdateCommentAsync(model);
 
-				return Json(new
-				{
-					success = true,
-					content = model.Content,
-					authorNickname = model.AuthorNickname
-				});
-			}
-			catch (Exception ex)
-			{
-				_logger.LogError(ex, "Error updating comment {CommentId}", model.Id);
-				return Json(new
-				{
-					success = false,
-					message = "An error occurred while updating the comment"
-				});
-			}
-		}
+                return Json(new
+                {
+                    success = true,
+                    content = model.Content,
+                    authorNickname = model.AuthorNickname
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating comment {CommentId}", model.Id);
+                return Json(new
+                {
+                    success = false,
+                    message = "An error occurred while updating the comment"
+                });
+            }
+        }
 
-		[HttpPost]
+        [HttpPost]
         [Authorize]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteComment(int confessionId, int commentId)

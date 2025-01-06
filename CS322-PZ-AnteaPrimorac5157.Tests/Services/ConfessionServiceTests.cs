@@ -3,6 +3,7 @@ using CS322_PZ_AnteaPrimorac5157.Repositories;
 using CS322_PZ_AnteaPrimorac5157.Services;
 using CS322_PZ_AnteaPrimorac5157.ViewModels;
 using Ganss.Xss;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
@@ -122,7 +123,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         [InlineData("Valid Title", "<u></u>")]
         [InlineData("Valid Title", "<s></s>")]
         public async Task CreateConfessionAsync_WithInvalidInput_ThrowsValidationException(
-       string title, string content)
+            string title, string content)
         {
             // Arrange
             var model = new CreateConfessionViewModel
@@ -296,6 +297,135 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
         }
 
         [Fact]
+        public async Task UpdateConfessionAsync_WithConcurrentUpdate_ThrowsConcurrencyException()
+        {
+            // Arrange
+            var model = new EditConfessionViewModel { 
+                Id = 1,
+                Title = "Updated Test Title",
+                Content = "Updated Test Content"
+
+            };
+            var confession = new Confession
+            {
+                Id = 1,
+                Title = "Test Title",
+                Content = "Test Content"
+            };
+
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
+                .ReturnsAsync(confession);
+            _repositoryMock.Setup(r => r.UpdateAsync(It.IsAny<Confession>()))
+                .ThrowsAsync(new DbUpdateConcurrencyException());
+
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(
+                () => _service.UpdateConfessionAsync(model)
+            );
+        }
+
+        [Theory]
+        [InlineData("<script>alert('xss')</script>Test", "Test")]
+        [InlineData("<b>Bold</b>", "<b>Bold</b>")]
+        public async Task UpdateConfessionAsync_SanitizesContent(
+           string input, string expected)
+        {
+            // Arrange
+            var model = new EditConfessionViewModel
+            {
+                Id = 1,
+                Title = "Test Title",
+                Content = input
+            };
+
+            var confession = new Confession { Id = 1 };
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
+                .ReturnsAsync(confession);
+
+            // Act
+            await _service.UpdateConfessionAsync(model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.UpdateAsync(It.Is<Confession>(c =>
+                c.Content == expected)));
+        }
+
+        [Theory]
+        [InlineData("", "Valid Content")]
+        [InlineData("   ", "Valid Content")]
+        [InlineData("<b></b>", "Valid Content")]
+        [InlineData("Valid Title", "")]
+        [InlineData("Valid Title", "   ")]
+        [InlineData("Valid Title", "<i></i>")]
+        public async Task UpdateConfessionAsync_WithEmptyContent_ThrowsValidationException(
+            string title, string content)
+        {
+            // Arrange
+            var model = new EditConfessionViewModel
+            {
+                Id = 1,
+                Title = title,
+                Content = content
+            };
+
+            var confession = new Confession { Id = 1 };
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
+                .ReturnsAsync(confession);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ValidationException>(
+                () => _service.UpdateConfessionAsync(model));
+            Assert.Contains("cannot be empty", exception.Message);
+        }
+
+        [Fact]
+        public async Task UpdateConfessionAsync_WithLongContent_PreservesContent()
+        {
+            // Arrange
+            var longContent = new string('a', 2000);
+            var model = new EditConfessionViewModel
+            {
+                Id = 1,
+                Title = "Test Title",
+                Content = longContent
+            };
+
+            var confession = new Confession { Id = 1 };
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
+                .ReturnsAsync(confession);
+
+            // Act
+            await _service.UpdateConfessionAsync(model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.UpdateAsync(It.Is<Confession>(c =>
+                c.Content.Length == 2000)));
+        }
+
+        [Fact]
+        public async Task UpdateConfessionAsync_WithNestedHtmlTags_SanitizesCorrectly()
+        {
+            // Arrange
+            var model = new EditConfessionViewModel
+            {
+                Id = 1,
+                Title = "Test Title",
+                Content = "<b><i>Bold and italic</i></b><script>alert('bad')</script>"
+            };
+
+            var confession = new Confession { Id = 1 };
+            _repositoryMock.Setup(r => r.GetByIdAsync(1, false))
+                .ReturnsAsync(confession);
+
+            // Act
+            await _service.UpdateConfessionAsync(model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.UpdateAsync(It.Is<Confession>(c =>
+                c.Content == "<b><i>Bold and italic</i></b>")));
+        }
+
+        [Fact]
         public async Task DeleteConfessionAsync_WithValidId_DeletesConfession()
         {
             // Arrange
@@ -410,6 +540,78 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Services
             // Act & Assert
             await Assert.ThrowsAsync<ValidationException>(() =>
                 _service.AddCommentAsync(1, model));
+        }
+
+        [Fact]
+        public async Task UpdateCommentAsync_WithValidInput_UpdatesComment()
+        {
+            // Arrange
+            var model = new EditCommentViewModel
+            {
+                Id = 1,
+                ConfessionId = 1,
+                Content = "Updated content",
+                AuthorNickname = "Updated author"
+            };
+
+            var existingComment = new Comment
+            {
+                Id = 1,
+                Content = "Old content",
+                AuthorNickname = "Old author"
+            };
+
+            _repositoryMock.Setup(r => r.GetCommentAsync(1))
+                .ReturnsAsync(existingComment);
+
+            // Act
+            await _service.UpdateCommentAsync(model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.UpdateCommentAsync(It.Is<Comment>(c =>
+                c.Content == model.Content &&
+                c.AuthorNickname == model.AuthorNickname)),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateCommentAsync_WithNonexistentComment_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var model = new EditCommentViewModel { Id = 9999 };
+
+            _repositoryMock.Setup(r => r.GetCommentAsync(9999))
+                .ReturnsAsync((Comment?)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                _service.UpdateCommentAsync(model));
+        }
+
+        [Theory]
+        [InlineData("<script>alert('xss')</script>Test", "Test")]
+        [InlineData("<b>Bold</b>", "<b>Bold</b>")]
+        public async Task UpdateCommentAsync_SanitizesContent(string input, string expected)
+        {
+            // Arrange
+            var model = new EditCommentViewModel
+            {
+                Id = 1,
+                Content = input,
+                AuthorNickname = "Author"
+            };
+
+            var existingComment = new Comment { Id = 1 };
+
+            _repositoryMock.Setup(r => r.GetCommentAsync(1))
+                .ReturnsAsync(existingComment);
+
+            // Act
+            await _service.UpdateCommentAsync(model);
+
+            // Assert
+            _repositoryMock.Verify(r => r.UpdateCommentAsync(It.Is<Comment>(c =>
+                c.Content == expected)), Times.Once);
         }
 
         [Fact]

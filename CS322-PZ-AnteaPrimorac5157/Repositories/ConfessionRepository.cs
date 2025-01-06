@@ -90,17 +90,16 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
         {
             try
             {
-                var entry = _context.Entry(confession);
-                if (entry.State == EntityState.Detached)
-                {
-                    _context.Confessions.Attach(confession);
-                }
-                entry.State = EntityState.Modified;
+                var existingConfession = await _context.Confessions.FindAsync(confession.Id);
+                if (existingConfession == null)
+                    throw new DbUpdateConcurrencyException();
+
+                _context.Entry(existingConfession).CurrentValues.SetValues(confession);
                 await _context.SaveChangesAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error occurred while updating confession with ID: {Id}", confession.Id);
+                _logger.LogError(ex, "Error updating confession {Id}", confession.Id);
                 throw;
             }
         }

@@ -117,6 +117,50 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             }
         }
 
+        public async Task UpdateConfessionAsync(EditConfessionViewModel model)
+        {
+            try
+            {
+                var confession = await _repository.GetByIdAsync(model.Id);
+                if (confession == null)
+                    throw new InvalidOperationException($"Confession {model.Id} not found");
+
+                var sanitizedTitle = _sanitizer.Sanitize(model.Title);
+                var sanitizedContent = _sanitizer.Sanitize(model.Content);
+
+                var titleWithoutTags = Regex.Replace(sanitizedTitle, "<.*?>", string.Empty).Trim();
+                var contentWithoutTags = Regex.Replace(sanitizedContent, "<.*?>", string.Empty).Trim();
+
+                if (string.IsNullOrWhiteSpace(titleWithoutTags))
+                    throw new ValidationException("Title cannot be empty or contain only HTML tags.");
+
+                if (string.IsNullOrWhiteSpace(contentWithoutTags))
+                    throw new ValidationException("Content cannot be empty or contain only HTML tags.");
+
+                confession.Title = sanitizedTitle;
+                confession.Content = sanitizedContent;
+                confession.RowVersion = model.RowVersion;
+
+                await _repository.UpdateAsync(confession);
+            }
+            catch (ValidationException ex)
+            {
+                _logger.LogError(ex, "Error occurred during validation");
+
+                throw;
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogError(ex, "Error occurred due to updating concurrency exception");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating confession");
+                throw new ApplicationException("Failed to update confession", ex);
+            }
+        }
+
         public async Task DeleteConfessionAsync(int id)
         {
             try

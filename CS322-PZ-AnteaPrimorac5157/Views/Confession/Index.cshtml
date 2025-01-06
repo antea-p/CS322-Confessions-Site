@@ -63,10 +63,10 @@
                 @if (User?.Identity?.IsAuthenticated == true)
                 {
                     <div class="confession-header-right">
-                        <button onclick="showEditAlert(@confession.Id)"
-                                class="btn btn-sm btn-secondary">
+                        <a href="@Url.Action("Edit", "Confession", new { id = confession.Id })"
+                           class="btn btn-sm btn-secondary">
                             <i class="fas fa-edit"></i> Edit
-                        </button>
+                        </a>
                         <button onclick="confirmDelete(@confession.Id)"
                                 class="btn btn-sm btn-danger">
                             <i class="fas fa-trash"></i> Delete

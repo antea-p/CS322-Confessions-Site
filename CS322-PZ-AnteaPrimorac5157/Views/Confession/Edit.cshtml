@@ -1,0 +1,99 @@
+﻿@model CS322_PZ_AnteaPrimorac5157.ViewModels.EditConfessionViewModel
+
+@{
+    ViewData["Title"] = "Edit Confession";
+}
+
+<div class="container">
+    <h2>Edit Confession</h2>
+    <div class="row">
+        <div class="col-md-8">
+            <form asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                @Html.HiddenFor(m => m.Id)
+                @Html.HiddenFor(m => m.RowVersion)
+
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Title" class="control-label">Title</label>
+                    <input asp-for="Title" class="form-control" maxlength="50" id="titleInput" />
+                    <small class="text-muted">
+                        <span id="titleCounter">50</span>/50 remaining
+                    </small>
+                    <span asp-validation-for="Title" class="text-danger"></span>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label asp-for="Content" class="control-label">Content</label>
+                    <div class="btn-toolbar mb-2">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-format-bold" title="Bold">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-format-italic" title="Italic">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-format-underline" title="Underline">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary btn-format-strikethrough" title="Strikethrough">
+                                <i class="fas fa-strikethrough"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <textarea asp-for="Content" class="form-control" rows="5" id="contentInput" maxlength="2000"></textarea>
+                    <small class="text-muted">
+                        <span id="contentCounter"></span>/2000 remaining
+                    </small>
+                    <span asp-validation-for="Content" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function () {
+            $('#titleInput').on('input', function () {
+                const remaining = 50 - $(this).val().length;
+                $('#titleCounter').text(remaining);
+            });
+
+            $('#contentInput').on('input', function () {
+                const remaining = 2000 - $(this).val().length;
+                $('#contentCounter').text(remaining);
+            });
+
+            $('#titleCounter').text(50 - $('#titleInput').val().length);
+            $('#contentCounter').text(2000 - $('#contentInput').val().length);
+
+            function formatText(tag) {
+                const $textarea = $('#contentInput');
+                const start = $textarea[0].selectionStart;
+                const end = $textarea[0].selectionEnd;
+                const selectedText = $textarea.val().substring(start, end);
+                const replacement = `<${tag}>${selectedText}</${tag}>`;
+                $textarea.val(
+                    $textarea.val().substring(0, start) +
+                    replacement +
+                    $textarea.val().substring(end)
+                );
+            }
+
+            $('.btn-format-bold').on('click', function () { formatText('b'); });
+            $('.btn-format-italic').on('click', function () { formatText('i'); });
+            $('.btn-format-underline').on('click', function () { formatText('u'); });
+            $('.btn-format-strikethrough').on('click', function () { formatText('s'); });
+        });
+    </script>
+}
