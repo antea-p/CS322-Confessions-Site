@@ -216,9 +216,21 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                 await _confessionService.UpdateConfessionAsync(model);
                 return RedirectToAction(nameof(Details), new { id = model.Id });
             }
+            catch (ValidationException ex)
+            {
+                // Dodaj validacijske greške
+                ModelState.AddModelError("", ex.Message);
+                return View(model);
+            }
             catch (DbUpdateConcurrencyException)
             {
                 ModelState.AddModelError("", "Another admin has modified this confession. Please reload and try again.");
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating confession");
+                ModelState.AddModelError("", "An unexpected error occurred. Please try again.");
                 return View(model);
             }
         }
