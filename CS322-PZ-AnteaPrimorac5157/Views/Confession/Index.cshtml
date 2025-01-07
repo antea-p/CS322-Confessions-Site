@@ -82,7 +82,7 @@
             <a href="@Url.Action("Details", "Confession", new { id = confession.Id })"
                class="card-body-link">
                 <div class="card-body">
-                    <h5 class="card-title">@confession.Title</h5>
+                    <h5 class="card-title">@Html.Raw(confession.Title)</h5>
                     <p class="card-text">
                         @{
                             var truncatedContent = confession.Content.Length < 120?
