@@ -332,11 +332,18 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             {
                 await _confessionService.UpdateCommentAsync(model);
 
+                // Vrati sanitiziranu verziju komentara iz baze podataka
+                var updatedComment = await _confessionService.GetCommentAsync(model.Id);
+                if (updatedComment == null)
+                {
+                    return Json(new { success = false, message = "Comment not found" });
+                }
+
                 return Json(new
                 {
                     success = true,
-                    content = model.Content,
-                    authorNickname = model.AuthorNickname
+                    content = updatedComment.Content,        // Već sanitizirano
+                    authorNickname = updatedComment.AuthorNickname
                 });
             }
             catch (Exception ex)

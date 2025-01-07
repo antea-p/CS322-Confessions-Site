@@ -109,49 +109,60 @@
     @section Scripts {
         <script>
             function toggleEditMode(commentId) {
-                $(`.content-display-${commentId}`).hide();
-                $(`.content-edit-${commentId}`).show();
-                $(`.edit-btn-${commentId}`).hide();
-                $(`.save-btn-${commentId}, .cancel-btn-${commentId}`).show();
+                document.querySelector(`.content-display-${commentId}`).style.display = 'none';
+                document.querySelector(`.content-edit-${commentId}`).style.display = 'block';
+                document.querySelector(`.edit-btn-${commentId}`).style.display = 'none';
+                document.querySelectorAll(`.save-btn-${commentId}, .cancel-btn-${commentId}`).forEach(el => {
+                    el.style.display = 'inline-block';
+                });
             }
 
             function cancelEdit(commentId) {
-                $(`.content-display-${commentId}`).show();
-                $(`.content-edit-${commentId}`).hide();
-                $(`.edit-btn-${commentId}`).show();
-                $(`.save-btn-${commentId}, .cancel-btn-${commentId}`).hide();
+                document.querySelector(`.content-display-${commentId}`).style.display = 'block';
+                document.querySelector(`.content-edit-${commentId}`).style.display = 'none';
+                document.querySelector(`.edit-btn-${commentId}`).style.display = 'inline-block';
+                document.querySelectorAll(`.save-btn-${commentId}, .cancel-btn-${commentId}`).forEach(el => {
+                    el.style.display = 'none';
+                });
             }
 
             function saveComment(commentId) {
-                const content = $(`.content-edit-${commentId} textarea`).val();
-                const authorNickname = $(`.content-edit-${commentId} input`).val();
+                const content = document.querySelector(`.content-edit-${commentId} textarea`).value;
+                const authorNickname = document.querySelector(`.content-edit-${commentId} input`).value;
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-                const token = $('input[name="__RequestVerificationToken"]').first().val();
-
-                $.ajax({
-                    url: '@Url.Action("EditComment", "Confession")',
-                    type: 'POST',
-                    contentType: 'application/x-www-form-urlencoded',
-                    data: {
+                fetch('@Url.Action("EditComment", "Confession")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
                         Id: commentId,
                         ConfessionId: @Model.Id,
                         Content: content,
                         AuthorNickname: authorNickname,
                         __RequestVerificationToken: token
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            $(`.content-display-${commentId}`).html(response.content);
-                            $(`#comment-${commentId} .card-subtitle`).text(response.authorNickname);
-                            cancelEdit(commentId);
-                        } else {
-                            alert('Error updating comment: ' + response.message);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Error details:', xhr.responseText);
-                        alert('Error updating comment: ' + error);
+                    })
+                })
+                .then(response => response.json())
+                .then(response => {
+                    if (response.success) {
+                        // textContent a ne innerHtml jer korisničko ime ne bi smjelo imati HTML
+                        document.querySelector(`#comment-${commentId} .card-subtitle`).textContent = response.authorNickname;
+
+                        // Kreiraj privremeni div 
+                        const tempDiv = document.createElement('div');
+                        tempDiv.textContent = response.content;  // Eskapiraj bilo kakav HTML
+                        document.querySelector(`.content-display-${commentId}`).innerHtml = tempDiv.textContent;
+
+                        cancelEdit(commentId);
+                    } else {
+                        alert('Error updating comment: ' + response.message);
                     }
+                })
+                .catch(error => {
+                    console.error('Error details:', error);
+                    alert('Error updating comment: ' + error);
                 });
             }
         </script>
