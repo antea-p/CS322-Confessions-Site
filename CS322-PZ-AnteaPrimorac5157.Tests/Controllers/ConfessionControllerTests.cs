@@ -296,7 +296,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             var confessionId = 1;
             var httpContext = new DefaultHttpContext();
             httpContext.Session = new MockSession();
-            httpContext.Session.SetLiked(confessionId, true);
+            httpContext.Session.SetConfessionLiked(confessionId, true);
 
             _controller.ControllerContext = new ControllerContext()
             {
@@ -351,7 +351,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             var confessionId = 1;
             var httpContext = new DefaultHttpContext();
             httpContext.Session = new MockSession();
-            httpContext.Session.SetLiked(confessionId, true);
+            httpContext.Session.SetConfessionLiked(confessionId, true);
 
             _controller.ControllerContext = new ControllerContext()
             {

@@ -14,6 +14,11 @@ namespace CS322_PZ_AnteaPrimorac5157.Models
 
         public DateTime DateCreated { get; set; } = DateTime.UtcNow;
 
+        public int Likes { get; set; } = 0;
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
         public int ConfessionId { get; set; }
 
         public virtual Confession Confession { get; set; } = null!;

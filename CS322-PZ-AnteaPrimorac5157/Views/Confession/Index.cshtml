@@ -83,7 +83,13 @@
                class="card-body-link">
                 <div class="card-body">
                     <h5 class="card-title">@confession.Title</h5>
-                    <p class="card-text">@Html.Raw(confession.Content)</p>
+                    <p class="card-text">
+                        @{
+                            var truncatedContent = confession.Content.Length < 120?
+                                confession.Content : confession.Content.Substring(0, 256) + "...";
+                        }
+                        @Html.Raw(truncatedContent)
+                    </p>
 
                     <div class="confession-stats">
                         <span>@confession.DateCreated.ToString("dd MMM yy")</span>

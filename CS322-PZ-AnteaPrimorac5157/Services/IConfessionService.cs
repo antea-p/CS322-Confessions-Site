@@ -17,5 +17,7 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
         Task DeleteCommentAsync(int confessionId, int commentId);
         Task IncrementLikesAsync(int id);
         Task DecrementLikesAsync(int id);
+        Task IncrementCommentLikesAsync(int commentId);
+        Task DecrementCommentLikesAsync(int commentId);
     }
 }

@@ -92,6 +92,15 @@
                         <input type="text" class="form-control mb-2" value="@comment.AuthorNickname" placeholder="Author Nickname" />
                     </div>
                     <small class="text-muted">@comment.DateCreated.ToString("dd MMM yyyy HH:mm")</small>
+                    <form asp-action="ToggleCommentLike"
+                            asp-route-confessionId="@Model.Id"
+                            asp-route-commentId="@comment.Id"
+                            method="post" class="d-inline ms-3">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm @(comment.UserHasLiked? "btn-secondary" : "btn-outline-secondary")">
+                            <i class="fas fa-thumbs-up"></i> @comment.Likes
+                        </button>
+                    </form>
                 </div>
             </div>
         }

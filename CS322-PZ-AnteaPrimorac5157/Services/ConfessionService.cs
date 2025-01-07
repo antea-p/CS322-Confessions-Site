@@ -293,5 +293,31 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
                 throw;
             }
         }
+
+        public async Task IncrementCommentLikesAsync(int commentId)
+        {
+            try
+            {
+                await _repository.IncrementCommentLikesAsync(commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error incrementing likes for comment {CommentId}", commentId);
+                throw;
+            }
+        }
+
+        public async Task DecrementCommentLikesAsync(int commentId)
+        {
+            try
+            {
+                await _repository.DecrementCommentLikesAsync(commentId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error decrementing likes for comment {CommentId}", commentId);
+                throw;
+            }
+        }
     }
 }

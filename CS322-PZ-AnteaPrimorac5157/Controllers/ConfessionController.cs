@@ -37,13 +37,15 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                 Content = confession.Content,
                 DateCreated = confession.DateCreated,
                 Likes = confession.Likes,
-                UserHasLiked = HttpContext.Session.HasLiked(id),
+                UserHasLiked = HttpContext.Session.HasLikedConfession(id),
                 Comments = confession.Comments.Select(c => new CommentViewModel
                 {
                     Id = c.Id,
                     Content = c.Content,
                     AuthorNickname = c.AuthorNickname,
-                    DateCreated = c.DateCreated
+                    DateCreated = c.DateCreated,
+                    Likes = c.Likes,
+                    UserHasLiked = HttpContext.Session.HasLikedComment(c.Id)
                 }).ToList(),
                 NewComment = commentModel ?? new CreateCommentViewModel { ConfessionId = id }
             };
@@ -124,19 +126,19 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
         {
             try
             {
-                bool hasLiked = HttpContext.Session.HasLiked(id);
+                bool hasLiked = HttpContext.Session.HasLikedConfession(id);
                 _logger.LogInformation($"Confession {id} - Current like state: {hasLiked}");
 
                 if (hasLiked)
                 {
                     await _confessionService.DecrementLikesAsync(id);
-                    HttpContext.Session.SetLiked(id, false);
+                    HttpContext.Session.SetConfessionLiked(id, false);
                     _logger.LogInformation($"Confession {id} - Decremented likes, set liked to false");
                 }
                 else
                 {
                     await _confessionService.IncrementLikesAsync(id);
-                    HttpContext.Session.SetLiked(id, true);
+                    HttpContext.Session.SetConfessionLiked(id, true);
                     _logger.LogInformation($"Confession {id} - Incremented likes, set liked to true");
                 }
 
@@ -344,6 +346,37 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in controller while deleting comment {CommentId} from confession {ConfessionId}", commentId, confessionId);
+                return RedirectToAction(nameof(Details), new { id = confessionId });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleCommentLike(int confessionId, int commentId)
+        {
+            try
+            {
+                bool hasLiked = HttpContext.Session.HasLikedComment(commentId);
+                _logger.LogInformation($"Comment {commentId} - Current like state: {hasLiked}");
+
+                if (hasLiked)
+                {
+                    await _confessionService.DecrementCommentLikesAsync(commentId);
+                    HttpContext.Session.SetCommentLiked(commentId, false);
+                    _logger.LogInformation($"Comment {commentId} - Decremented likes, set liked to false");
+                }
+                else
+                {
+                    await _confessionService.IncrementCommentLikesAsync(commentId);
+                    HttpContext.Session.SetCommentLiked(commentId, true);
+                    _logger.LogInformation($"Comment {commentId} - Incremented likes, set liked to true");
+                }
+
+                return RedirectToAction(nameof(Details), new { id = confessionId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling like for comment ID: {CommentId}", commentId);
                 return RedirectToAction(nameof(Details), new { id = confessionId });
             }
         }

@@ -293,5 +293,41 @@ namespace CS322_PZ_AnteaPrimorac5157.Repositories
                 throw;
             }
         }
+
+        public async Task IncrementCommentLikesAsync(int commentId)
+        {
+            try
+            {
+                var comment = await GetCommentAsync(commentId);
+                if (comment != null)
+                {
+                    comment.Likes++;
+                    await UpdateCommentAsync(comment);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while incrementing likes for for comment {CommentId}", commentId);
+                throw;
+            }
+        }
+
+        public async Task DecrementCommentLikesAsync(int commentId)
+        {
+            try
+            {
+                var comment = await GetCommentAsync(commentId);
+                if (comment != null && comment.Likes > 0)
+                {
+                    comment.Likes--;
+                    await UpdateCommentAsync(comment);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while incrementing likes for comment {CommentId}", commentId);
+                throw;
+            }
+        }
     }
 }

@@ -290,6 +290,39 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
             Assert.Empty(await context.Comments.Where(c => c.ConfessionId == confession.Id).ToListAsync());
         }
 
+
+        [Fact]
+        public async Task DeleteAsync_WithAlreadyDeletedConfession_ThrowsConcurrencyException()
+        {
+            // Arrange
+            using var context1 = new ApplicationDbContext(_contextOptions);
+            using var context2 = new ApplicationDbContext(_contextOptions);
+
+            var repository1 = new ConfessionRepository(context1, _loggerMock.Object);
+            var repository2 = new ConfessionRepository(context2, _loggerMock.Object);
+
+            var confession = new Confession
+            {
+                Title = "Test Confession",
+                Content = "Test Content"
+            };
+            await context1.Confessions.AddAsync(confession);
+            await context1.SaveChangesAsync();
+
+            var confession1 = await context1.Confessions.FindAsync(confession.Id);
+            var confession2 = await context2.Confessions.FindAsync(confession.Id);
+
+            Assert.NotNull(confession1);
+            Assert.NotNull(confession2);
+
+            // Brisanje ispovijesti u drugom kontekstu
+            await repository2.DeleteAsync(confession2);
+
+            // Act & Assert - Ne bi trebalo biti moguće izbrisati ispovijest u prvom kontekstu (već izbrisana)
+            await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
+                repository1.DeleteAsync(confession1));
+        }
+
         [Fact]
         public async Task GetByIdAsync_WithNonExistentId_ReturnsNull()
         {
@@ -508,123 +541,123 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Repositories
             Assert.Null(result);
         }
 
-		[Fact]
-		public async Task GetCommentAsync_WithValidId_ReturnsComment()
-		{
-			// Arrange
-			using var context = new ApplicationDbContext(_contextOptions);
-			var repository = new ConfessionRepository(context, _loggerMock.Object);
+        [Fact]
+        public async Task GetCommentAsync_WithValidId_ReturnsComment()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
 
-			var confession = new Confession
-			{
-				Title = "Test",
-				Content = "Test"
-			};
-			var comment = new Comment
-			{
-				Content = "Test Comment",
-				AuthorNickname = "Tester",
-				Confession = confession
-			};
-			await context.Confessions.AddAsync(confession);
-			await context.Comments.AddAsync(comment);
-			await context.SaveChangesAsync();
+            var confession = new Confession
+            {
+                Title = "Test",
+                Content = "Test"
+            };
+            var comment = new Comment
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester",
+                Confession = confession
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.Comments.AddAsync(comment);
+            await context.SaveChangesAsync();
 
-			// Act
-			var result = await repository.GetCommentAsync(comment.Id);
+            // Act
+            var result = await repository.GetCommentAsync(comment.Id);
 
-			// Assert
-			Assert.NotNull(result);
-			Assert.Equal(comment.Content, result.Content);
-			Assert.Equal(comment.AuthorNickname, result.AuthorNickname);
-		}
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(comment.Content, result.Content);
+            Assert.Equal(comment.AuthorNickname, result.AuthorNickname);
+        }
 
-		[Fact]
-		public async Task AddCommentAsync_UpdatesConfessionComments()
-		{
-			// Arrange
-			using var context = new ApplicationDbContext(_contextOptions);
-			var repository = new ConfessionRepository(context, _loggerMock.Object);
+        [Fact]
+        public async Task AddCommentAsync_UpdatesConfessionComments()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
 
-			var confession = new Confession
-			{
-				Title = "Test",
-				Content = "Test"
-			};
-			await context.Confessions.AddAsync(confession);
-			await context.SaveChangesAsync();
+            var confession = new Confession
+            {
+                Title = "Test",
+                Content = "Test"
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.SaveChangesAsync();
 
-			var comment = new Comment
-			{
-				Content = "Test Comment",
-				AuthorNickname = "Tester",
-				ConfessionId = confession.Id
-			};
+            var comment = new Comment
+            {
+                Content = "Test Comment",
+                AuthorNickname = "Tester",
+                ConfessionId = confession.Id
+            };
 
-			// Act
-			await repository.AddCommentAsync(comment);
+            // Act
+            await repository.AddCommentAsync(comment);
 
-			// Assert
-			var savedConfession = await context.Confessions
-				.Include(c => c.Comments)
-				.FirstAsync(c => c.Id == confession.Id);
+            // Assert
+            var savedConfession = await context.Confessions
+                .Include(c => c.Comments)
+                .FirstAsync(c => c.Id == confession.Id);
 
-			Assert.Single(savedConfession.Comments);
-			Assert.Equal(comment.Content, savedConfession.Comments.First().Content);
-		}
+            Assert.Single(savedConfession.Comments);
+            Assert.Equal(comment.Content, savedConfession.Comments.First().Content);
+        }
 
-		[Fact]
-		public async Task AddCommentAsync_WithInvalidConfessionId_Throws()
-		{
-			// Arrange
-			using var context = new ApplicationDbContext(_contextOptions);
-			var repository = new ConfessionRepository(context, _loggerMock.Object);
+        [Fact]
+        public async Task AddCommentAsync_WithInvalidConfessionId_Throws()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
 
-			var comment = new Comment
-			{
-				Content = "Test",
-				AuthorNickname = "Tester",
-				ConfessionId = 9999
-			};
+            var comment = new Comment
+            {
+                Content = "Test",
+                AuthorNickname = "Tester",
+                ConfessionId = 9999
+            };
 
-			// Act & Assert
-			await Assert.ThrowsAsync<DbUpdateException>(() =>
-				repository.AddCommentAsync(comment));
-		}
+            // Act & Assert
+            await Assert.ThrowsAsync<DbUpdateException>(() =>
+                repository.AddCommentAsync(comment));
+        }
 
 
-		[Fact]
-		public async Task UpdateCommentAsync_WithValidComment_UpdatesDatabase()
-		{
-			// Arrange
-			using var context = new ApplicationDbContext(_contextOptions);
-			var repository = new ConfessionRepository(context, _loggerMock.Object);
+        [Fact]
+        public async Task UpdateCommentAsync_WithValidComment_UpdatesDatabase()
+        {
+            // Arrange
+            using var context = new ApplicationDbContext(_contextOptions);
+            var repository = new ConfessionRepository(context, _loggerMock.Object);
 
-			var confession = new Confession { Title = "Test", Content = "Test" };
-			var comment = new Comment
-			{
-				Content = "Original",
-				AuthorNickname = "Original",
-				Confession = confession
-			};
-			await context.Confessions.AddAsync(confession);
-			await context.Comments.AddAsync(comment);
-			await context.SaveChangesAsync();
+            var confession = new Confession { Title = "Test", Content = "Test" };
+            var comment = new Comment
+            {
+                Content = "Original",
+                AuthorNickname = "Original",
+                Confession = confession
+            };
+            await context.Confessions.AddAsync(confession);
+            await context.Comments.AddAsync(comment);
+            await context.SaveChangesAsync();
 
-			context.ChangeTracker.Clear();
+            context.ChangeTracker.Clear();
 
-			comment.Content = "Updated";
-			comment.AuthorNickname = "Updated";
+            comment.Content = "Updated";
+            comment.AuthorNickname = "Updated";
 
-			// Act
-			await repository.UpdateCommentAsync(comment);
+            // Act
+            await repository.UpdateCommentAsync(comment);
 
-			// Assert
-			var updatedComment = await context.Comments.FindAsync(comment.Id);
-			Assert.NotNull(updatedComment);
-			Assert.Equal("Updated", updatedComment.Content);
-			Assert.Equal("Updated", updatedComment.AuthorNickname);
-		}
+            // Assert
+            var updatedComment = await context.Comments.FindAsync(comment.Id);
+            Assert.NotNull(updatedComment);
+            Assert.Equal("Updated", updatedComment.Content);
+            Assert.Equal("Updated", updatedComment.AuthorNickname);
+        }
 
         [Fact]
         public async Task DeleteCommentAsync_WithValidIds_DeletesComment()
