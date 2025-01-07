@@ -198,6 +198,9 @@ namespace CS322_PZ_AnteaPrimorac5157.Services
             var sanitizedContent = _sanitizer.Sanitize(model.Content);
             var sanitizedNickname = _sanitizer.Sanitize(model.AuthorNickname);
 
+            var contentWithoutTags = Regex.Replace(sanitizedContent, "<.*?>", string.Empty).Trim();
+            var nicknameWithoutTags = Regex.Replace(sanitizedNickname, "<.*?>", string.Empty).Trim();
+
             if (string.IsNullOrWhiteSpace(sanitizedContent))
                 throw new ValidationException("Comment content cannot be empty or contain only HTML tags.");
             if (string.IsNullOrWhiteSpace(sanitizedNickname))

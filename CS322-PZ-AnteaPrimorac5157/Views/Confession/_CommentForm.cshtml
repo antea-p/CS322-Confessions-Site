@@ -1,6 +1,7 @@
 ﻿@model CS322_PZ_AnteaPrimorac5157.ViewModels.CreateCommentViewModel
 
 <form asp-action="AddComment" asp-route-id="@Model.ConfessionId" method="post">
+    <div asp-validation-summary="All" class="text-danger"></div>
     @Html.AntiForgeryToken()
     <div class="form-group mb-3">
         <label asp-for="AuthorNickname">Your Nickname</label>

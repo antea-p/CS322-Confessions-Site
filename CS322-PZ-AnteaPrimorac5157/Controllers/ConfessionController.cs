@@ -279,6 +279,13 @@ namespace CS322_PZ_AnteaPrimorac5157.Controllers
                 await _confessionService.AddCommentAsync(id, model);
                 return RedirectToAction(nameof(Details), new { id });
             }
+            catch (ValidationException ex)
+            {
+                ModelState.AddModelError("", ex.Message);
+                var viewModel = await GetConfessionDetailsViewModel(id, model);
+                if (viewModel == null) return NotFound();
+                return View("Details", viewModel);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while adding comment to confession {ConfessionId}", id);

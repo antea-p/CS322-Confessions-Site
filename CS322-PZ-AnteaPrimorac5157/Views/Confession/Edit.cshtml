@@ -49,6 +49,16 @@
                     <span asp-validation-for="Content" class="text-danger"></span>
                 </div>
 
+                <div class="card mb-3">
+                    <div class="card-header">
+                        Preview
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title" id="previewTitle"></h5>
+                        <div class="card-text" id="previewContent"></div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <button type="submit" class="btn btn-primary">Save Changes</button>
                     <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Cancel</a>
@@ -63,37 +73,51 @@
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
     <script>
-        $(document).ready(function () {
-            $('#titleInput').on('input', function () {
-                const remaining = 50 - $(this).val().length;
-                $('#titleCounter').text(remaining);
-            });
-
-            $('#contentInput').on('input', function () {
-                const remaining = 2000 - $(this).val().length;
-                $('#contentCounter').text(remaining);
-            });
-
-            $('#titleCounter').text(50 - $('#titleInput').val().length);
-            $('#contentCounter').text(2000 - $('#contentInput').val().length);
-
-            function formatText(tag) {
-                const $textarea = $('#contentInput');
-                const start = $textarea[0].selectionStart;
-                const end = $textarea[0].selectionEnd;
-                const selectedText = $textarea.val().substring(start, end);
-                const replacement = `<${tag}>${selectedText}</${tag}>`;
-                $textarea.val(
-                    $textarea.val().substring(0, start) +
-                    replacement +
-                    $textarea.val().substring(end)
-                );
-            }
-
-            $('.btn-format-bold').on('click', function () { formatText('b'); });
-            $('.btn-format-italic').on('click', function () { formatText('i'); });
-            $('.btn-format-underline').on('click', function () { formatText('u'); });
-            $('.btn-format-strikethrough').on('click', function () { formatText('s'); });
+        // Brojanje karaktera
+        document.getElementById('titleInput').addEventListener('input', function (e) {
+            const remaining = 50 - this.value.length;
+            const counter = document.getElementById('titleCounter');
+            counter.textContent = remaining;
+            counter.classList.toggle('text-danger', remaining < 10);
+            updatePreview();
         });
+
+        document.getElementById('contentInput').addEventListener('input', function (e) {
+            const remaining = 2000 - this.value.length;
+            const counter = document.getElementById('contentCounter');
+            counter.textContent = remaining;
+            counter.classList.toggle('text-danger', remaining < 1000);
+            updatePreview();
+        });
+
+        // Formatiranje teksta
+        function formatText(tag) {
+            const textarea = document.getElementById('contentInput');
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selectedText = textarea.value.substring(start, end);
+            const replacement = `<${tag}>${selectedText}</${tag}>`;
+
+            textarea.value = textarea.value.substring(0, start)
+                         + replacement
+                         + textarea.value.substring(end);
+
+            updatePreview();
+        }
+
+        document.querySelector('.btn-format-bold').addEventListener('click', () => formatText('b'));
+        document.querySelector('.btn-format-italic').addEventListener('click', () => formatText('i'));
+        document.querySelector('.btn-format-underline').addEventListener('click', () => formatText('u'));
+        document.querySelector('.btn-format-strikethrough').addEventListener('click', () => formatText('s'));
+
+        function updatePreview() {
+            const title = document.getElementById('titleInput').value;
+            const content = document.getElementById('contentInput').value;
+
+            document.getElementById('previewTitle').innerHTML = title;
+            document.getElementById('previewContent').innerHTML = content;
+        }
+
+        updatePreview();
     </script>
 }
