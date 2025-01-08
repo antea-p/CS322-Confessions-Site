@@ -701,8 +701,17 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
                 AuthorNickname = "Updated author"
             };
 
+            var commentInDatabase = new Comment
+            {
+                Id = 1,
+                Content = "Updated content",
+                AuthorNickname = "Updated author"
+            };
+
             _serviceMock.Setup(s => s.UpdateCommentAsync(It.IsAny<EditCommentViewModel>()))
                 .Returns(Task.CompletedTask);
+            _serviceMock.Setup(s => s.GetCommentAsync(1))
+                .ReturnsAsync(commentInDatabase);
 
             SetupAuthorizedUser();
 
@@ -716,7 +725,16 @@ namespace CS322_PZ_AnteaPrimorac5157.Tests.Controllers
             var json = System.Text.Json.JsonSerializer.Serialize(jsonResult.Value);
             var deserialized = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json);
 
-            Assert.True(deserialized["success"].GetBoolean());
+            Assert.NotNull(deserialized);
+            if (deserialized.TryGetValue("success", out JsonElement successElement))
+            {
+                Assert.True(successElement.GetBoolean());
+            }
+            else
+            {
+                Assert.Fail("success property not found in response");
+            }
+
             Assert.Equal(model.Content, deserialized["content"].GetString());
             Assert.Equal(model.AuthorNickname, deserialized["authorNickname"].GetString());
         }
